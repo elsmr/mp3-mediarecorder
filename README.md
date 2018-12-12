@@ -1,2 +1,3 @@
 # mp3-mediarecorder
-MediaRecorder ponyfill that records audio as mp3
+
+> [`MediaRecorder`](https://w3c.github.io/mediacapture-record/#mediarecorder-api) [ponyfill](https://ponyfill.com) that records audio as mp3

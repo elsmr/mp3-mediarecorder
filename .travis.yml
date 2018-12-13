@@ -3,6 +3,12 @@ language: node_js
 node_js:
     - lts/*
 
+stages:
+    - cacha
+    - checks
+    - name: release
+      if: branch = master AND commit_message =~ /(feat|fix|BREAKING CHANGE)/
+
 jobs:
     include:
         - stage: cache
@@ -21,9 +27,5 @@ jobs:
           name: 'Check formatting'
           script: npm run format:check
         - stage: release
-          script: echo "Running semantic-release"
-          deploy:
-              - provider: script
-                script: npx semantic-release
-                on:
-                    branch: master
+          name: Release to npm
+          script: npx semantic-release

@@ -2,9 +2,10 @@
   "name": "mp3-mediarecorder",
   "version": "0.0.1",
   "description": "MediaRecorder ponyfill that records audio as mp3",
-  "main": "index.js",
+  "main": "src/index.ts",
   "scripts": {
     "test": "jest",
+    "format": "npm run format:write",
     "format:write": "prettier --write **/*.{ts,js,yml,json,md}",
     "format:check": "prettier -l **/*.{ts,js,yml,json,md}",
     "build": "tsc"
@@ -32,8 +33,12 @@
   },
   "homepage": "https://github.com/eliasmeire/mp3-mediarecorder#readme",
   "devDependencies": {
+    "@types/dom-mediacapture-record": "^1.0.0",
+    "@types/jest": "^23.3.10",
+    "jest": "^23.6.0",
     "prettier": "^1.15.3",
     "semantic-release": "^15.12.5",
+    "ts-jest": "^23.10.5",
     "typescript": "^3.2.2"
   },
   "dependencies": {

@@ -1,8 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "es2016",
-    "module": "esnext",
-    "strict": true,
-    "esModuleInterop": true
-  }
+    "compilerOptions": {
+        "target": "es2016",
+        "module": "esnext",
+        "strict": true,
+        "esModuleInterop": true
+    }
 }

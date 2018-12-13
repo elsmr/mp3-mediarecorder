@@ -1,26 +1,26 @@
 cache: npm
 
 node_js:
-  - lts/*
+    - lts/*
 
 jobs:
-  include:
-    - stage: cache
-      name: "Warm up cache"
-      script: true
-    - stage: checks
-      name: "Build"
-      script: npm run build
-    - stage: checks
-      name: "Unit tests"
-      script: npm test
-    - stage: checks
-      name: "Check formatting"
-      script: npm run format:check
-    - stage: release
-      script: echo "Running semantic-release"
-      deploy:
-        - provider: script
-          script: npx semantic-release
-          on:
-            branch: master
+    include:
+        - stage: cache
+          name: "Warm up cache"
+          script: true
+        - stage: checks
+          name: "Build"
+          script: npm run build
+        - stage: checks
+          name: "Unit tests"
+          script: npm test
+        - stage: checks
+          name: "Check formatting"
+          script: npm run format:check
+        - stage: release
+          script: echo "Running semantic-release"
+          deploy:
+              - provider: script
+                script: npx semantic-release
+                on:
+                    branch: master

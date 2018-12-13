@@ -4,7 +4,7 @@ node_js:
     - lts/*
 
 stages:
-    - cacha
+    - cache
     - checks
     - name: release
       if: branch = master AND commit_message =~ /(feat|fix|BREAKING CHANGE)/

@@ -1,21 +1,24 @@
 cache: npm
-
+language: node_js
 node_js:
     - lts/*
 
 jobs:
     include:
         - stage: cache
-          name: "Warm up cache"
-          script: true
+          name: 'Warm up cache'
+          script: echo "Warming up npm cache"
         - stage: checks
-          name: "Build"
+          name: 'Build'
           script: npm run build
         - stage: checks
-          name: "Unit tests"
+          name: 'Typescript'
+          script: npm run tsc
+        - stage: checks
+          name: 'Unit tests'
           script: npm test
         - stage: checks
-          name: "Check formatting"
+          name: 'Check formatting'
           script: npm run format:check
         - stage: release
           script: echo "Running semantic-release"

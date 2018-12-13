@@ -3,6 +3,10 @@
         "target": "es2016",
         "module": "esnext",
         "strict": true,
-        "esModuleInterop": true
-    }
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "declaration": true
+    },
+    "files": ["src/recorder.ts"]
 }

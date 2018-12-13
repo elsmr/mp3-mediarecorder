@@ -2,13 +2,16 @@
   "name": "mp3-mediarecorder",
   "version": "0.0.1",
   "description": "MediaRecorder ponyfill that records audio as mp3",
-  "main": "src/index.ts",
+  "module": "dist/mp3-mediarecorder.esm.js",
+  "browser": "dist/mp3-mediarecorder.umd.js",
   "scripts": {
     "test": "jest",
     "format": "npm run format:write",
     "format:write": "prettier --write **/*.{ts,js,yml,json,md}",
     "format:check": "prettier -l **/*.{ts,js,yml,json,md}",
-    "build": "tsc"
+    "tsc": "tsc --noEmit",
+    "build": "rollup -c",
+    "build:watch": "rollup -w"
   },
   "repository": {
     "type": "git",
@@ -37,6 +40,9 @@
     "@types/jest": "^23.3.10",
     "jest": "^23.6.0",
     "prettier": "^1.15.3",
+    "rollup": "^0.67.4",
+    "rollup-plugin-typescript2": "^0.18.1",
+    "rollup-plugin-wasm": "^3.0.0",
     "semantic-release": "^15.12.5",
     "ts-jest": "^23.10.5",
     "typescript": "^3.2.2"

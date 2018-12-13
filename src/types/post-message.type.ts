@@ -11,7 +11,6 @@ export enum PostMessageType {
 
 export class InitMessage {
     readonly type = PostMessageType.INIT_WORKER;
-    constructor(public payload: { wasmURL: string }) {}
 }
 
 export class ErrorMessage {

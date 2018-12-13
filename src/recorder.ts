@@ -9,8 +9,6 @@ import {
 } from './types/post-message.type';
 import { mp3EncoderWorker } from './worker';
 
-export const record = () => true;
-
 const BlobEvent = window.BlobEvent || ShimBlobEvent;
 const MediaRecorderErrorEvent = window.MediaRecorderErrorEvent || ShimMediaRecorderErrorEvent;
 const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;

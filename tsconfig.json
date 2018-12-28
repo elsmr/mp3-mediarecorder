@@ -8,5 +8,6 @@
         "resolveJsonModule": true,
         "declaration": true
     },
-    "files": ["src/recorder.ts"]
+    "include": ["src/**/*.ts"],
+    "exclude": ["dist", "node_modules", "**/*.test.ts"]
 }

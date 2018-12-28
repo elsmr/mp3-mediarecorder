@@ -10,10 +10,10 @@
 
 ## Browser Support
 
-- Chrome 57+
-- Firefox 52+
-- Safari 11+
-- Edge 16+
+-   Chrome 57+
+-   Firefox 52+
+-   Safari 11+
+-   Edge 16+
 
 ## Why
 
@@ -23,9 +23,9 @@ Even when MediaRecorder is supported, the audio files it creates differ between 
 
 ## Limitations
 
-- The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument.
-- As a result of the first limitation, `MediaRecorder.requestData` does not trigger a `dataavailable` event.
+-   The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument.
+-   As a result of the first limitation, `MediaRecorder.requestData` does not trigger a `dataavailable` event.
 
 ## Related
 
-- https://github.com/Kagami/vmsg: Use this library if you want a more complete library with a built-in UI
+-   https://github.com/Kagami/vmsg: Use this library if you want a more complete library with a built-in UI

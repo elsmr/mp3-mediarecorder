@@ -1,0 +1,33 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem;
+    padding: 1rem;
+    background: white;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+h1 {
+    font-size: 24px;
+}
+
+#stop {
+    display: none;
+}
+
+main {
+    padding: 0 2rem;
+}
+main > * + * {
+    margin-top: 2rem;
+}
+
+#recordings {
+    min-height: 200px;
+}

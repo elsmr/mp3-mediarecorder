@@ -1,7 +1,9 @@
+import { RecorderConfig } from './recorder-config.type';
 import { WorkerConfig } from './worker-config.type';
 
 export enum PostMessageType {
-    INIT_WORKER = '[Main -> Worker] Init',
+    INIT_WORKER = '[Main -> Worker] Init Worker',
+    WORKER_READY = '[Main <- Worker] Worker Ready',
     DATA_AVAILABLE = '[Main -> Worker] Data available',
     START_RECORDING = '[Main <-> Worker] Start recording',
     STOP_RECORDING = '[Main <-> Worker] Stop recording',
@@ -11,6 +13,11 @@ export enum PostMessageType {
 
 export class InitMessage {
     readonly type = PostMessageType.INIT_WORKER;
+    constructor(public payload: RecorderConfig) {}
+}
+
+export class WorkerReadyMessage {
+    readonly type = PostMessageType.WORKER_READY;
 }
 
 export class ErrorMessage {

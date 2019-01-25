@@ -1,16 +1,23 @@
 import copy from 'rollup-plugin-copy';
+import resolve from 'rollup-plugin-node-resolve';
+import sourceMaps from 'rollup-plugin-sourcemaps';
 import typescript from 'rollup-plugin-typescript2';
-import pkg from './package.json';
+
+const pkg = require('./package.json');
 
 export default {
-    input: `src/index.ts`,
+    input: 'src/recorder.ts',
     output: [
-        { file: pkg.browser, name: 'Mp3MediaRecorder', format: 'umd' },
-        { file: pkg.module, format: 'es' },
-        { file: pkg.main, format: 'cjs' }
+        { file: pkg.main, name: 'mp3MediaRecorder', format: 'umd', sourcemap: true, interop: false },
+        { file: pkg.module, format: 'es', sourcemap: true, interop: false }
     ],
     watch: {
         include: 'src/**'
     },
-    plugins: [typescript(), copy({ 'node_modules/vmsg/vmsg.wasm': 'dist/vmsg.wasm' })]
+    plugins: [
+        typescript({ useTsconfigDeclarationDir: true }),
+        resolve(),
+        sourceMaps(),
+        copy({ 'node_modules/vmsg/vmsg.wasm': 'dist/vmsg.wasm' })
+    ]
 };

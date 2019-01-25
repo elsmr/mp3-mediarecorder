@@ -1,4 +1,5 @@
-import { ErrorMessage, PostMessageType, WorkerPostMessage, WorkerReadyMessage } from './types/post-message.type';
+import { WorkerPostMessage } from './types/post-message.type';
+import { WorkerConfig } from './types/worker-config.type';
 
 export const mp3EncoderWorker = () => {
     // from vmsg
@@ -6,8 +7,16 @@ export const mp3EncoderWorker = () => {
     const TOTAL_STACK = 5 * 1024 * 1024;
     const TOTAL_MEMORY = 16 * 1024 * 1024;
     const WASM_PAGE_SIZE = 64 * 1024;
+    const ctx = (self as any) as WorkerGlobalScope;
+    const memory = new WebAssembly.Memory({
+        initial: TOTAL_MEMORY / WASM_PAGE_SIZE,
+        maximum: TOTAL_MEMORY / WASM_PAGE_SIZE
+    });
     let dynamicTop = TOTAL_STACK;
     let vmsg: VmsgWasm;
+    let isRecording = false;
+    let vmsgRef: number;
+    let pcmLeft: Float32Array;
 
     const getWasmModuleFallback = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
         return new Promise((resolve, reject) => {
@@ -23,17 +32,18 @@ export const mp3EncoderWorker = () => {
     };
 
     const getWasmModule = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
+        console.log(url, imports, WebAssembly);
         if (!WebAssembly.instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }
-        const req: Promise<Response> = fetch(url, { credentials: 'same-origin' });
+        const req: Promise<any> = fetch(url, { credentials: 'same-origin' }).catch(err => console.log(err));
         return WebAssembly.instantiateStreaming(req, imports).catch(() => getWasmModuleFallback(url, imports));
     };
 
-    const getVmsgImports = (): object => {
+    const getVmsgImports = (): Record<string, any> => {
         const onExit = (err: any) => {
             console.log('exit', err);
-            (postMessage as any)(new ErrorMessage({ error: 'Internal encoding error' }));
+            ctx.postMessage({ type: 'ERROR', error: 'internal' });
         };
 
         const sbrk = (increment: number): number => {
@@ -41,11 +51,6 @@ export const mp3EncoderWorker = () => {
             dynamicTop += increment;
             return oldDynamicTop;
         };
-
-        const memory = new WebAssembly.Memory({
-            initial: TOTAL_MEMORY / WASM_PAGE_SIZE,
-            maximum: TOTAL_MEMORY / WASM_PAGE_SIZE
-        });
 
         const env = {
             memory,
@@ -63,26 +68,77 @@ export const mp3EncoderWorker = () => {
         return { env };
     };
 
-    self.onmessage = event => {
+    const onStartRecording = (config: WorkerConfig): void => {
+        isRecording = true;
+        vmsgRef = vmsg.vmsg_init(config.sampleRate);
+        if (!vmsgRef || !vmsg) {
+            throw new Error('init_failed');
+        }
+        const pcmLeftRef = new Uint32Array(memory.buffer, vmsgRef, 1)[0];
+        pcmLeft = new Float32Array(memory.buffer, pcmLeftRef);
+    };
+
+    const onStopRecording = (): Blob => {
+        isRecording = false;
+        if (vmsg.vmsg_flush(vmsgRef) < 0) {
+            throw new Error('flush_failed');
+        }
+        const mp3BytesRef = new Uint32Array(memory.buffer, vmsgRef + 4, 1)[0];
+        const size = new Uint32Array(memory.buffer, vmsgRef + 8, 1)[0];
+        const mp3Bytes = new Uint8Array(memory.buffer, mp3BytesRef, size);
+        const blob = new Blob([mp3Bytes], { type: 'audio/mpeg' });
+        vmsg.vmsg_free(vmsgRef);
+        return blob;
+    };
+
+    const onDataReceived = (data: ArrayLike<number>): void => {
+        if (!isRecording) {
+            return;
+        }
+
+        pcmLeft.set(data);
+        const encodedBytesAmount = vmsg.vmsg_encode(vmsgRef, data.length);
+        if (encodedBytesAmount < 0) {
+            throw new Error('encoding_failed');
+        }
+    };
+
+    ctx.onmessage = event => {
         const message: WorkerPostMessage = event.data;
+        console.log('main -> worker', message);
+        try {
+            switch (message.type) {
+                case 'INIT_WORKER': {
+                    const imports = getVmsgImports();
+                    getWasmModule(message.config.wasmURL, imports)
+                        .then(wasm => {
+                            vmsg = wasm.instance.exports;
+                            ctx.postMessage({ type: 'WORKER_READY' });
+                        })
+                        .catch(error => {
+                            ctx.postMessage({ type: 'ERROR', error });
+                        });
+                    break;
+                }
+                case 'START_RECORDING': {
+                    onStartRecording(message.config);
+                    ctx.postMessage({ type: 'WORKER_RECORDING' });
+                    break;
+                }
 
-        switch (message.type) {
-            case PostMessageType.INIT_WORKER: {
-                console.log('Worker start');
-                getWasmModule(message.payload.wasmURL, getVmsgImports()).then(wasm => {
-                    vmsg = wasm.instance.exports;
-                    (postMessage as any)(new WorkerReadyMessage());
-                });
-                break;
-            }
+                case 'DATA_AVAILABLE': {
+                    onDataReceived(message.data);
+                    break;
+                }
 
-            case PostMessageType.INIT_WORKER: {
-                console.log('Worker start');
-                getWasmModule(message.payload.wasmURL, getVmsgImports()).then(wasm => {
-                    vmsg = wasm.instance.exports;
-                    (postMessage as any)(new WorkerReadyMessage());
-                });
+                case 'STOP_RECORDING': {
+                    const blob = onStopRecording();
+                    ctx.postMessage({ type: 'BLOB_READY', blob });
+                    break;
+                }
             }
+        } catch (err) {
+            ctx.postMessage({ type: 'ERROR', error: err.message });
         }
     };
 };

@@ -1,15 +1,17 @@
-import { MP3_MIME_TYPE } from './constants';
+import { defineEventAttribute, EventTarget } from 'event-target-shim';
 import { ShimBlobEvent, ShimMediaRecorderErrorEvent } from './shims';
 import {
-    InitMessage,
+    dataAvailableMessage,
+    initMessage,
     PostMessageType,
-    StartRecordingMessage,
-    StopRecordingMessage,
+    startRecordingMessage,
+    stopRecordingMessage,
     WorkerPostMessage
 } from './types/post-message.type';
 import { RecorderConfig } from './types/recorder-config.type';
 import { mp3EncoderWorker } from './worker';
 
+const MP3_MIME_TYPE = 'audio/mpeg';
 const BlobEvent = window.BlobEvent || ShimBlobEvent;
 const MediaRecorderErrorEvent = window.MediaRecorderErrorEvent || ShimMediaRecorderErrorEvent;
 const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -17,8 +19,21 @@ const createGain = (ctx: AudioContext) => (ctx.createGain || (ctx as any).create
 const createScriptProcessor = (ctx: AudioContext) =>
     (ctx.createScriptProcessor || (ctx as any).createJavaScriptNode).call(ctx, 0, 1, 1);
 
-export const getMp3MediaRecorder = (config: RecorderConfig): typeof MediaRecorder => {
-    class Mp3MediaRecorder extends EventTarget implements MediaRecorder {
+export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof MediaRecorder> => {
+    const workerBlob = new Blob([`(${mp3EncoderWorker.toString()})()`], {
+        type: 'application/javascript'
+    });
+    const worker = new Worker(URL.createObjectURL(workerBlob));
+
+    class Mp3MediaRecorder extends EventTarget
+        implements
+            Pick<
+                MediaRecorder,
+                Exclude<
+                    keyof MediaRecorder,
+                    'onstart' | 'onstop' | 'onresume' | 'onpause' | 'ondataavailable' | 'onerror'
+                >
+            > {
         stream: MediaStream;
         mimeType = MP3_MIME_TYPE;
         state: RecordingState = 'inactive';
@@ -30,46 +45,35 @@ export const getMp3MediaRecorder = (config: RecorderConfig): typeof MediaRecorde
         private gainNode: GainNode;
         private processorNode: ScriptProcessorNode;
 
-        private worker: Worker;
-        private workerURL: string;
-
         static isTypeSupported = (mimeType: string) => mimeType === MP3_MIME_TYPE;
 
         constructor(stream: MediaStream) {
             super();
             this.stream = stream;
             this.audioContext = new AudioContext();
+            this.audioContext.suspend();
             this.sourceNode = this.audioContext.createMediaStreamSource(stream);
             this.gainNode = createGain(this.audioContext);
             this.gainNode.gain.value = 1;
             this.processorNode = createScriptProcessor(this.audioContext);
             this.sourceNode.connect(this.gainNode);
             this.gainNode.connect(this.processorNode);
-
-            const workerBlob = new Blob([`(${mp3EncoderWorker.toString()})()`], {
-                type: 'application/javascript'
-            });
-            this.workerURL = URL.createObjectURL(workerBlob);
-            console.log('start');
-            this.worker = new Worker(this.workerURL);
-            this.worker.postMessage(new InitMessage(config));
-            this.worker.onmessage = this.onWorkerMessage;
+            worker.onmessage = this.onWorkerMessage;
         }
 
         start(): void {
-            if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
-            }
-
-            this.worker.postMessage(
-                new StartRecordingMessage({
-                    config: { sampleRate: this.audioContext.sampleRate }
-                })
-            );
+            this.processorNode.onaudioprocess = event => {
+                worker.postMessage(dataAvailableMessage(event.inputBuffer.getChannelData(0)));
+            };
+            this.processorNode.connect(this.audioContext.destination);
+            this.audioContext.resume();
+            worker.postMessage(startRecordingMessage({ sampleRate: this.audioContext.sampleRate }));
         }
 
         stop(): void {
-            this.worker.postMessage(new StopRecordingMessage());
+            this.processorNode.disconnect();
+            this.audioContext.suspend();
+            worker.postMessage(stopRecordingMessage());
         }
 
         pause(): void {
@@ -84,53 +88,50 @@ export const getMp3MediaRecorder = (config: RecorderConfig): typeof MediaRecorde
             // not implemented, dataavailable event only fires when encoding is finished
         }
 
-        onerror: (event: MediaRecorderErrorEvent) => void = () => {};
-        onpause: EventListener = () => {};
-        onresume: EventListener = () => {};
-        onstart: EventListener = () => {};
-        onstop: EventListener = () => {};
-        ondataavailable: (event: BlobEvent) => void = () => {};
-
         private onWorkerMessage = (event: MessageEvent): void => {
             const message: WorkerPostMessage = event.data;
+            console.log('worker -> main', message);
 
             switch (message.type) {
-                case PostMessageType.START_RECORDING: {
+                case PostMessageType.WORKER_RECORDING: {
                     const event = new Event('start');
-                    this.onstart(event);
                     this.dispatchEvent(event);
                     this.state = 'recording';
                     break;
                 }
-                case PostMessageType.STOP_RECORDING: {
-                    const event = new Event('stop');
-                    this.onstop(event);
-                    this.dispatchEvent(event);
-                    this.state = 'inactive';
-                    break;
-                }
                 case PostMessageType.ERROR: {
-                    const event = new MediaRecorderErrorEvent('error', {
-                        error: new DOMException(message.payload.error)
-                    });
-                    this.onerror(event);
+                    const event = new MediaRecorderErrorEvent('error', { error: new DOMException(message.error) });
                     this.dispatchEvent(event);
                     this.state = 'inactive';
                     break;
                 }
                 case PostMessageType.BLOB_READY: {
-                    const event = new BlobEvent('dataavailable', {
-                        data: message.payload.blob,
-                        timecode: Date.now()
-                    });
-                    this.ondataavailable(event);
-                    this.dispatchEvent(event);
+                    const stopEvent = new Event('stop');
+                    const dataEvent = new BlobEvent('dataavailable', { data: message.blob, timecode: Date.now() });
+                    this.dispatchEvent(dataEvent);
+                    this.dispatchEvent(stopEvent);
                     this.state = 'inactive';
                     break;
                 }
             }
         };
     }
+    defineEventAttribute(Mp3MediaRecorder.prototype, 'start');
+    defineEventAttribute(Mp3MediaRecorder.prototype, 'stop');
+    defineEventAttribute(Mp3MediaRecorder.prototype, 'pause');
+    defineEventAttribute(Mp3MediaRecorder.prototype, 'resume');
+    defineEventAttribute(Mp3MediaRecorder.prototype, 'dataavailable');
+    defineEventAttribute(Mp3MediaRecorder.prototype, 'error');
 
-    return Mp3MediaRecorder;
+    return new Promise((resolve, reject) => {
+        worker.postMessage(initMessage(config));
+        worker.onmessage = ({ data }: { data: WorkerPostMessage }) => {
+            if (data.type === PostMessageType.WORKER_READY) {
+                resolve(Mp3MediaRecorder as any);
+            } else {
+                const errorMessage = data.type === PostMessageType.ERROR ? data.error : 'Unknown error occurred ';
+                reject(errorMessage);
+            }
+        };
+    });
 };

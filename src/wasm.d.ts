@@ -4,6 +4,8 @@ declare class WebAssemblyInstance {
 }
 declare class WebAssemblyMemory {
     constructor(options: { initial: number; maximum: number });
+    grow: (pages: number) => void;
+    buffer: ArrayBuffer;
 }
 
 interface WebAssemblyResultObject {
@@ -26,13 +28,4 @@ declare const WebAssembly: WebAssemblyInterface;
 
 interface Window {
     WebAssembly: WebAssemblyInterface;
-}
-
-interface VmsgRef {}
-
-interface VmsgWasm {
-    vmsg_init: (sampleRate: number) => VmsgRef;
-    vmsg_encode: (data: Uint8Array) => void;
-    vmsg_free: (ref: VmsgRef) => void;
-    vmsg_flush: (ref: VmsgRef) => void;
 }

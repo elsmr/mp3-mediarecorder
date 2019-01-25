@@ -3,21 +3,26 @@
     <head>
         <meta charset="utf-8" />
         <title>MP3 MediaRecorder</title>
-        <link href="https://unpkg.com/nes.css@0.0.2/css/nes.min.css" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet" />
+        <link href="https://unpkg.com/nes.css/css/nes.min.css" rel="stylesheet" />
         <link href="style.css" rel="stylesheet" />
+        <script src="../../dist/mp3-mediarecorder.umd.js"></script>
         <script src="index.js" type="module"></script>
     </head>
 
     <body>
-        <main>
-            <h1>MP3 MediaRecorder</h1>
-            <section class="container with-title" id="recordings">
+        <main id="main">
+            <h1>
+                MP3 MediaRecorder
+                <div id="indicator" class="indicator"></div>
+            </h1>
+            <section class="nes-container with-title" id="recordings">
                 <h2 class="title">Recordings</h2>
                 <p id="empty">empty</p>
             </section>
             <div>
-                <button class="btn is-primary" id="record">Record</button>
-                <button class="btn is-error" id="stop">Stop</button>
+                <button class="nes-btn is-primary" id="record">Record</button>
+                <button class="nes-btn is-error" id="stop">Stop</button>
             </div>
         </main>
     </body>

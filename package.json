@@ -13,7 +13,8 @@
     "format:write": "prettier --write **/*.{ts,js,  yml,json,md}",
     "format:check": "prettier -l **/*.{ts,js,yml,json,md}",
     "tsc": "tsc --noEmit",
-    "build": "rimraf dist && rollup -c"
+    "build": "rimraf dist && rollup -c",
+    "dev": "serve ."
   },
   "repository": {
     "type": "git",

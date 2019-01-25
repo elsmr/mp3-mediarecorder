@@ -25,15 +25,7 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
     });
     const worker = new Worker(URL.createObjectURL(workerBlob));
 
-    class Mp3MediaRecorder extends EventTarget
-        implements
-            Pick<
-                MediaRecorder,
-                Exclude<
-                    keyof MediaRecorder,
-                    'onstart' | 'onstop' | 'onresume' | 'onpause' | 'ondataavailable' | 'onerror'
-                >
-            > {
+    class Mp3MediaRecorder extends EventTarget {
         stream: MediaStream;
         mimeType = MP3_MIME_TYPE;
         state: RecordingState = 'inactive';
@@ -90,7 +82,6 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
 
         private onWorkerMessage = (event: MessageEvent): void => {
             const message: WorkerPostMessage = event.data;
-            console.log('worker -> main', message);
 
             switch (message.type) {
                 case PostMessageType.WORKER_RECORDING: {

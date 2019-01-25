@@ -32,17 +32,15 @@ export const mp3EncoderWorker = () => {
     };
 
     const getWasmModule = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
-        console.log(url, imports, WebAssembly);
         if (!WebAssembly.instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }
-        const req: Promise<any> = fetch(url, { credentials: 'same-origin' }).catch(err => console.log(err));
+        const req: Promise<any> = fetch(url, { credentials: 'same-origin' }).catch(err => console.error(err));
         return WebAssembly.instantiateStreaming(req, imports).catch(() => getWasmModuleFallback(url, imports));
     };
 
     const getVmsgImports = (): Record<string, any> => {
         const onExit = (err: any) => {
-            console.log('exit', err);
             ctx.postMessage({ type: 'ERROR', error: 'internal' });
         };
 
@@ -105,7 +103,6 @@ export const mp3EncoderWorker = () => {
 
     ctx.onmessage = event => {
         const message: WorkerPostMessage = event.data;
-        console.log('main -> worker', message);
         try {
             switch (message.type) {
                 case 'INIT_WORKER': {

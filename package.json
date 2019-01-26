@@ -1,12 +1,18 @@
 {
   "name": "mp3-mediarecorder",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "MediaRecorder ponyfill that records audio as mp3",
   "main": "dist/mp3-mediarecorder.umd.js",
   "module": "dist/mp3-mediarecorder.esm.js",
   "typings": "dist/types/recorder.d.ts",
   "types": "dist/types/recorder.d.ts",
-  "files": ["dist", "package.json", "package-lock.json", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "package.json",
+    "package-lock.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "jest",
     "format": "npm run format:write",

@@ -69,11 +69,15 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
         }
 
         pause(): void {
+            this.audioContext.suspend();
             this.state = 'paused';
+            this.dispatchEvent(new Event('pause'));
         }
 
         resume(): void {
+            this.audioContext.resume();
             this.state = 'recording';
+            this.dispatchEvent(new Event('resume'));
         }
 
         requestData(): void {
@@ -107,6 +111,7 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
             }
         };
     }
+
     defineEventAttribute(Mp3MediaRecorder.prototype, 'start');
     defineEventAttribute(Mp3MediaRecorder.prototype, 'stop');
     defineEventAttribute(Mp3MediaRecorder.prototype, 'pause');

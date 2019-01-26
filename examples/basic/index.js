@@ -1,78 +1,90 @@
-const recordButton = document.getElementById('record');
+const startButton = document.getElementById('record');
 const stopButton = document.getElementById('stop');
+const pauseButton = document.getElementById('pause');
+const resumeButton = document.getElementById('resume');
 const recordings = document.getElementById('recordings');
-const indicator = document.getElementById('indicator');
 const main = document.getElementById('main');
-let empty = document.getElementById('empty');
 
 let isRecording = false;
 let recorder = null;
 let blobs = [];
 let mediaStream = null;
+let isPaused = false;
+let Mp3MediaRecorder = null;
 
 window.mp3MediaRecorder
     .getMp3MediaRecorder({ wasmURL: `${window.location.origin}/dist/vmsg.wasm` })
-    .then(Mp3MediaRecorder => {
-        main.classList.add('main--loaded');
-
-        const removeEmpty = () => {
-            if (empty) {
-                recordings.removeChild(empty);
-                empty = null;
-            }
-        };
-
-        const addRecording = () => {
-            console.log(blobs);
-            const mp3Blob = new Blob(blobs, { type: 'audio/mpeg' });
-            const mp3BlobUrl = URL.createObjectURL(mp3Blob);
-            const audio = new Audio();
-            audio.controls = true;
-            audio.src = mp3BlobUrl;
-            recordings.appendChild(audio);
-        };
-
-        const toggleButtons = () => {
-            isRecording = !isRecording;
-            stopButton.style.display = isRecording ? 'block' : 'none';
-            recordButton.style.display = isRecording ? 'none' : 'block';
-        };
-
-        recordButton.addEventListener('click', () => {
-            navigator.mediaDevices.getUserMedia({ audio: true }).then(
-                stream => {
-                    toggleButtons();
-                    mediaStream = stream;
-                    recorder = new Mp3MediaRecorder(stream);
-                    recorder.start();
-
-                    recorder.onstart = e => {
-                        console.log('start', e);
-                        blobs = [];
-                        indicator.classList.add('indicator--visible');
-                    };
-
-                    recorder.ondataavailable = e => {
-                        console.log('data', e);
-                        blobs.push(e.data);
-                    };
-
-                    recorder.onstop = e => {
-                        console.log('onstop', e);
-                        indicator.classList.remove('indicator--visible');
-                        removeEmpty();
-                        addRecording();
-                    };
-                },
-                reason => {
-                    console.warn('Could not get microphone access.\nError:', reason.message);
-                }
-            );
-        });
-
-        stopButton.addEventListener('click', () => {
-            toggleButtons();
-            mediaStream.getTracks().forEach(track => track.stop());
-            recorder.stop();
-        });
+    .then(recorderClass => {
+        Mp3MediaRecorder = recorderClass;
+        startButton.classList.remove('is-disabled');
     });
+
+startButton.addEventListener('click', () => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(
+        stream => {
+            mediaStream = stream;
+            recorder = new Mp3MediaRecorder(stream);
+            recorder.start();
+
+            recorder.onstart = e => {
+                console.log('onstart', e);
+                blobs = [];
+                startButton.classList.add('is-disabled');
+                stopButton.classList.remove('is-disabled');
+                pauseButton.classList.remove('is-disabled');
+            };
+
+            recorder.ondataavailable = e => {
+                console.log('ondataavailable', e);
+                blobs.push(e.data);
+            };
+
+            recorder.onstop = e => {
+                console.log('onstop', e);
+                mediaStream.getTracks().forEach(track => track.stop());
+
+                startButton.classList.remove('is-disabled');
+                pauseButton.classList.add('is-disabled');
+                stopButton.classList.add('is-disabled');
+
+                const mp3Blob = new Blob(blobs, { type: 'audio/mpeg' });
+                const mp3BlobUrl = URL.createObjectURL(mp3Blob);
+                const audio = new Audio();
+                audio.controls = true;
+                audio.src = mp3BlobUrl;
+                recordings.appendChild(audio);
+            };
+
+            recorder.onpause = e => {
+                console.log('onpause', e);
+                resumeButton.classList.remove('is-disabled');
+                pauseButton.classList.add('is-disabled');
+            };
+
+            recorder.onresume = e => {
+                console.log('onresume', e);
+                resumeButton.classList.add('is-disabled');
+                pauseButton.classList.remove('is-disabled');
+            };
+
+            recorder.onerror = e => {
+                console.error('onerror', e);
+            };
+        },
+        reason => {
+            console.warn('Could not get microphone access.\nError:', reason.message);
+        }
+    );
+});
+
+stopButton.addEventListener('click', () => {
+    recorder.stop();
+});
+
+pauseButton.addEventListener('click', () => {
+    recorder.pause();
+});
+
+resumeButton.addEventListener('click', () => {
+    recorder.resume();
+});

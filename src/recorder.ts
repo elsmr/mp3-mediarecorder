@@ -17,7 +17,7 @@ const MediaRecorderErrorEvent = window.MediaRecorderErrorEvent || ShimMediaRecor
 const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
 const createGain = (ctx: AudioContext) => (ctx.createGain || (ctx as any).createGainNode).call(ctx);
 const createScriptProcessor = (ctx: AudioContext) =>
-    (ctx.createScriptProcessor || (ctx as any).createJavaScriptNode).call(ctx, 0, 1, 1);
+    (ctx.createScriptProcessor || (ctx as any).createJavaScriptNode).call(ctx, 4096, 1, 1);
 
 export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof MediaRecorder> => {
     const workerBlob = new Blob([`(${mp3EncoderWorker.toString()})()`], {

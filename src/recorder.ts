@@ -120,7 +120,8 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
     defineEventAttribute(Mp3MediaRecorder.prototype, 'error');
 
     return new Promise((resolve, reject) => {
-        worker.postMessage(initMessage(config));
+        const wasmURL = new URL(config.wasmURL, window.location.origin).href;
+        worker.postMessage(initMessage(wasmURL));
         worker.onmessage = ({ data }: { data: WorkerPostMessage }) => {
             if (data.type === PostMessageType.WORKER_READY) {
                 resolve(Mp3MediaRecorder as any);

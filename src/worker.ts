@@ -107,13 +107,13 @@ export const mp3EncoderWorker = () => {
             switch (message.type) {
                 case 'INIT_WORKER': {
                     const imports = getVmsgImports();
-                    getWasmModule(message.config.wasmURL, imports)
+                    getWasmModule(message.wasmURL, imports)
                         .then(wasm => {
                             vmsg = wasm.instance.exports;
                             ctx.postMessage({ type: 'WORKER_READY' });
                         })
-                        .catch(error => {
-                            ctx.postMessage({ type: 'ERROR', error });
+                        .catch(err => {
+                            ctx.postMessage({ type: 'ERROR', error: err.message });
                         });
                     break;
                 }

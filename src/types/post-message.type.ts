@@ -1,4 +1,3 @@
-import { RecorderConfig } from './recorder-config.type';
 import { WorkerConfig } from './worker-config.type';
 
 export enum PostMessageType {
@@ -12,9 +11,9 @@ export enum PostMessageType {
     WORKER_READY = 'WORKER_READY'
 }
 
-export const initMessage = (config: RecorderConfig) => ({
+export const initMessage = (wasmURL: string) => ({
     type: PostMessageType.INIT_WORKER as PostMessageType.INIT_WORKER,
-    config
+    wasmURL
 });
 export const errorMessage = (error: string) => ({ type: PostMessageType.ERROR as PostMessageType.ERROR, error });
 export const startRecordingMessage = (config: WorkerConfig) => ({

@@ -1,6 +1,6 @@
 {
   "name": "mp3-mediarecorder",
-  "version": "1.0.0",
+  "version": "3.2.0",
   "description": "MediaRecorder ponyfill that records audio as mp3",
   "main": "dist/mp3-mediarecorder.umd.js",
   "module": "dist/mp3-mediarecorder.esm.js",
@@ -45,6 +45,7 @@
   },
   "homepage": "https://github.com/eliasmeire/mp3-mediarecorder#readme",
   "devDependencies": {
+    "@semantic-release/git": "^7.0.8",
     "@types/dom-mediacapture-record": "^1.0.0",
     "@types/jest": "^23.3.13",
     "concurrently": "^4.1.0",
@@ -64,5 +65,14 @@
   "dependencies": {
     "event-target-shim": "^5.0.0",
     "vmsg": "^0.3.5"
+  },
+  "release": {
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
+      "@semantic-release/github",
+      "@semantic-release/git"
+    ]
   }
 }

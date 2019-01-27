@@ -28,4 +28,6 @@ jobs:
           script: npm run format:check
         - stage: release
           name: Release to npm
-          script: npx semantic-release
+          script:
+              - npm run build
+              - npx semantic-release

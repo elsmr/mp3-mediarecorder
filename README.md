@@ -4,7 +4,7 @@
 
 A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) [ponyfill](https://ponyfill.com) that records audio as mp3. It uses the great https://github.com/Kagami/vmsg library under the hood to encode mp3 audio in WebAssembly using [LAME](http://lame.sourceforge.net/).
 
-💡 view the demo app [Live](https://eliasmei.re/mp3-mediarecorder) / [Code](demo)
+View the demo app [Live](https://eliasmei.re/mp3-mediarecorder) / [Code](demo)
 
 ## Features
 

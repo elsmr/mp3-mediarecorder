@@ -6,8 +6,7 @@ node_js:
 stages:
     - cache
     - checks
-    - name: release
-      if: branch = master AND commit_message =~ /(feat|fix|BREAKING CHANGE)/
+    - release
 
 jobs:
     include:
@@ -27,7 +26,19 @@ jobs:
           name: 'Check formatting'
           script: npm run format:check
         - stage: release
+          name: 'Publish demo to Github Pages'
+          script: skip
+          deploy:
+              provider: pages
+              skip-cleanup: true
+              github-token: $GITHUB_TOKEN
+              keep-history: true
+              local-dir: demo
+              on:
+                  branch: master
+        - stage: release
           name: Release to npm
+          if: branch = master AND commit_message =~ /(feat|fix|BREAKING CHANGE)/
           script:
               - npm run build
               - npx semantic-release

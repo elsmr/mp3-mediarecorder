@@ -13,7 +13,7 @@ let isPaused = false;
 let Mp3MediaRecorder = null;
 
 window.mp3MediaRecorder
-    .getMp3MediaRecorder({ wasmURL: `${window.location.origin}/dist/vmsg.wasm` })
+    .getMp3MediaRecorder({ wasmURL: 'https://unpkg.com/vmsg@0.3.5/vmsg.wasm' })
     .then(recorderClass => {
         Mp3MediaRecorder = recorderClass;
         startButton.classList.remove('is-disabled');

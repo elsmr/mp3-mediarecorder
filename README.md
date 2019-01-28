@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/eliasmeire/mp3-mediarecorder.svg?branch=master)](https://travis-ci.org/eliasmeire/mp3-mediarecorder) [![NPM Version](https://badge.fury.io/js/mp3-mediarecorder.svg?style=flat)](https://npmjs.org/package/mp3-mediarecorder) [![Live demo](https://img.shields.io/badge/live%20demo-available-blue.svg)](https://eliasmei.re/mp3-mediarecorder)
 
-A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) [ponyfill](https://ponyfill.com) that records audio as mp3. It uses the great https://github.com/Kagami/vmsg library under the hood to encode mp3 audio in WebAssembly using [LAME](http://lame.sourceforge.net/).
+A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) [ponyfill](https://ponyfill.com) that records audio as mp3. It uses the great [Kagami/vmsg](https://github.com/Kagami/vmsg) library under the hood to encode mp3 audio in WebAssembly using [LAME](http://lame.sourceforge.net/).
 
 View the demo app [Live](https://eliasmei.re/mp3-mediarecorder) / [Code](demo)
 
@@ -12,7 +12,7 @@ View the demo app [Live](https://eliasmei.re/mp3-mediarecorder) / [Code](demo)
 -   Audio encoding off the main thread using Web Workers
 -   Consistent MP3 file output in all supported browsers
 -   High quality type definitions
--   3.7kB gzipped, 2 dependencies
+-   3.7kB gzipped
 
 ## Browser Support
 
@@ -56,7 +56,7 @@ Browser support for MediaRecorder is [lacking](https://caniuse.com/#feat=mediare
 
 Even in browsers with support for MediaRecorder, the available audio formats differ between browsers, and are not always compatible with other browsers. MP3 is the only audio format that can be played [by all modern browsers](https://developer.mozilla.org/en-US/docs/Web/HTML/Supported_media_formats#Browser_compatibility).
 
-https://github.com/Kagami/vmsg is a great library but I needed something that doesn't include a UI and/or getUserMedia code.
+[Kagami/vmsg](https://github.com/Kagami/vmsg) is a great library but I needed something that doesn't include a UI and/or getUserMedia code.
 
 ## Limitations
 
@@ -67,4 +67,4 @@ https://github.com/Kagami/vmsg is a great library but I needed something that do
 
 ## Related
 
--   https://github.com/Kagami/vmsg: Use this library if you want a more complete microphone recording library with a built-in UI
+-   [Kagami/vmsg](https://github.com/Kagami/vmsg): Use this library if you want a more complete microphone recording library with a built-in UI

@@ -7,7 +7,10 @@ import pkg from './package.json';
 
 export default {
     input: 'src/recorder.ts',
-    output: [{ file: pkg.main, name: 'mp3MediaRecorder', format: 'umd', sourcemap: true, interop: false }],
+    output: [{ file: pkg.module, format: 'es', sourcemap: true, interop: false }],
+    watch: {
+        include: 'src/**'
+    },
     plugins: [
         typescript({ useTsconfigDeclarationDir: true }),
         resolve(),

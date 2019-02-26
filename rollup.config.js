@@ -6,7 +6,7 @@ import pkg from './package.json';
 
 export default {
     input: 'src/recorder.ts',
-    output: [{ file: pkg.module, format: 'es', sourcemap: true, interop: false }],
+    output: [{ file: pkg.es2015, format: 'es', sourcemap: true, interop: false }],
     watch: {
         include: 'src/**'
     },

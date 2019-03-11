@@ -1,5 +1,4 @@
 import { defineEventAttribute, EventTarget } from 'event-target-shim';
-import { ShimBlobEvent, ShimMediaRecorderErrorEvent } from './shims';
 import {
     dataAvailableMessage,
     initMessage,
@@ -12,8 +11,6 @@ import { RecorderConfig } from './types/recorder-config.type';
 import { mp3EncoderWorker } from './worker';
 
 const MP3_MIME_TYPE = 'audio/mpeg';
-const BlobEvent = window.BlobEvent || ShimBlobEvent;
-const MediaRecorderErrorEvent = window.MediaRecorderErrorEvent || ShimMediaRecorderErrorEvent;
 const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
 const createGain = (ctx: AudioContext) => (ctx.createGain || (ctx as any).createGainNode).call(ctx);
 const createScriptProcessor = (ctx: AudioContext) =>
@@ -95,14 +92,27 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
                     break;
                 }
                 case PostMessageType.ERROR: {
-                    const event = new MediaRecorderErrorEvent('error', { error: new DOMException(message.error) });
+                    const error = new DOMException(message.error);
+                    const fallbackEvent = new Event('error');
+                    (fallbackEvent as any).error = error;
+                    const event = window.MediaRecorderErrorEvent
+                        ? new MediaRecorderErrorEvent('error', { error })
+                        : fallbackEvent;
                     this.dispatchEvent(event);
                     this.state = 'inactive';
                     break;
                 }
                 case PostMessageType.BLOB_READY: {
                     const stopEvent = new Event('stop');
-                    const dataEvent = new BlobEvent('dataavailable', { data: message.blob, timecode: Date.now() });
+                    const fallbackDataEvent = new Event('dataavailable');
+                    (fallbackDataEvent as any).data = message.blob;
+                    (fallbackDataEvent as any).timecode = Date.now();
+                    const dataEvent = window.BlobEvent
+                        ? new BlobEvent('dataavailable', {
+                              data: message.blob,
+                              timecode: Date.now()
+                          })
+                        : fallbackDataEvent;
                     this.dispatchEvent(dataEvent);
                     this.dispatchEvent(stopEvent);
                     this.state = 'inactive';

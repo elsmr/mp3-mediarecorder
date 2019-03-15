@@ -19,24 +19,17 @@ export const mp3EncoderWorker = () => {
     let pcmLeft: Float32Array;
 
     const getWasmModuleFallback = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
-        return new Promise((resolve, reject) => {
-            const req = new XMLHttpRequest();
-            req.open('GET', url);
-            req.responseType = 'arraybuffer';
-            req.onload = () => {
-                resolve(WebAssembly.instantiate(req.response, imports));
-            };
-            req.onerror = reject;
-            req.send();
-        });
+        return fetch(url)
+            .then(response => response.arrayBuffer())
+            .then(buffer => WebAssembly.instantiate(buffer, imports));
     };
 
     const getWasmModule = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
         if (!WebAssembly.instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }
-        const req: Promise<any> = fetch(url, { credentials: 'same-origin' }).catch(err => console.error(err));
-        return WebAssembly.instantiateStreaming(req, imports).catch(() => getWasmModuleFallback(url, imports));
+
+        return WebAssembly.instantiateStreaming(fetch(url), imports).catch(() => getWasmModuleFallback(url, imports));
     };
 
     const getVmsgImports = (): Record<string, any> => {

@@ -36,10 +36,10 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
 
         static isTypeSupported = (mimeType: string) => mimeType === MP3_MIME_TYPE;
 
-        constructor(stream: MediaStream) {
+        constructor(stream: MediaStream, audioContext?: AudioContext) {
             super();
             this.stream = stream;
-            this.audioContext = new AudioContext();
+            this.audioContext = audioContext || new AudioContext();
             this.audioContext.suspend();
             this.sourceNode = this.audioContext.createMediaStreamSource(stream);
             this.gainNode = createGain(this.audioContext);

@@ -40,7 +40,6 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
             super();
             this.stream = stream;
             this.audioContext = audioContext || new AudioContext();
-            this.audioContext.suspend();
             this.sourceNode = this.audioContext.createMediaStreamSource(stream);
             this.gainNode = createGain(this.audioContext);
             this.gainNode.gain.value = 1;

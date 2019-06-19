@@ -5,7 +5,7 @@ export const mp3EncoderWorker = () => {
     // from vmsg
     // Must be in sync with emcc settings!
     const TOTAL_STACK = 5 * 1024 * 1024;
-    const TOTAL_MEMORY = 16 * 1024 * 1024;
+    const TOTAL_MEMORY = 128 * 1024 * 1024;
     const WASM_PAGE_SIZE = 64 * 1024;
     const ctx = (self as any) as WorkerGlobalScope;
     const memory = new WebAssembly.Memory({

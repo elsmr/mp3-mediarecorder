@@ -27,6 +27,7 @@ jobs:
           script: npm run format:check
         - stage: release
           name: 'Publish demo to Github Pages'
+          if: branch = master AND commit_message =~ /(feat|fix|BREAKING CHANGE)/
           script: skip
           deploy:
               provider: pages

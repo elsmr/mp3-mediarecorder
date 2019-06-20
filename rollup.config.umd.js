@@ -9,7 +9,7 @@ export default {
     input: 'src/recorder.ts',
     output: [{ file: pkg.main, name: 'mp3MediaRecorder', format: 'umd', sourcemap: true, interop: false }],
     plugins: [
-        typescript({ useTsconfigDeclarationDir: true }),
+        typescript({ useTsconfigDeclarationDir: true, clean: true }),
         resolve(),
         sourceMaps(),
         buble(),

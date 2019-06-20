@@ -18,13 +18,16 @@ export const mp3EncoderWorker = () => {
     let vmsgRef: number;
     let pcmLeft: Float32Array;
 
-    const getWasmModuleFallback = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
+    const getWasmModuleFallback = (
+        url: string,
+        imports: object
+    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
         return fetch(url)
             .then(response => response.arrayBuffer())
             .then(buffer => WebAssembly.instantiate(buffer, imports));
     };
 
-    const getWasmModule = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
+    const getWasmModule = (url: string, imports: object): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
         if (!WebAssembly.instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }

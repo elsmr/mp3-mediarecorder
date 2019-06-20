@@ -11,9 +11,9 @@ export default {
         include: 'src/**'
     },
     plugins: [
-        typescript({ useTsconfigDeclarationDir: true }),
+        typescript({ useTsconfigDeclarationDir: true, clean: true }),
         resolve(),
         sourceMaps(),
-        copy({ 'node_modules/vmsg/vmsg.wasm': 'dist/vmsg.wasm' })
+        copy({ targets: [{ src: 'node_modules/vmsg/vmsg.wasm', dest: 'dist' }] })
     ]
 };

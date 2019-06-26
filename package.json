@@ -46,7 +46,7 @@
   },
   "homepage": "https://github.com/eliasmeire/mp3-mediarecorder#readme",
   "devDependencies": {
-    "@semantic-release/git": "7.0.12",
+    "@semantic-release/git": "7.0.14",
     "@types/dom-mediacapture-record": "1.0.1",
     "@types/jest": "24.0.15",
     "concurrently": "4.1.0",
@@ -60,7 +60,7 @@
     "rollup-plugin-node-resolve": "5.0.3",
     "rollup-plugin-sourcemaps": "0.4.2",
     "rollup-plugin-typescript2": "0.21.2",
-    "semantic-release": "15.13.16",
+    "semantic-release": "15.13.18",
     "serve": "11.0.2",
     "ts-jest": "24.0.2",
     "typescript": "3.5.2"

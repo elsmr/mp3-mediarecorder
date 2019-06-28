@@ -1,4 +1,4 @@
-import { WorkerConfig } from './worker-config.type';
+import { WorkerConfig } from './config.type';
 
 export enum PostMessageType {
     INIT_WORKER = 'INIT_WORKER',

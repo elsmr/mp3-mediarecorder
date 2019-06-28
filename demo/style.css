@@ -2,15 +2,14 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 2rem;
-    padding: 1rem;
     background: white;
-    box-sizing: border-box;
+    min-height: 100vh;
+    padding: 1rem;
+    -webkit-overflow-scrolling: touch;
 }
 
-html,
-body {
-    height: 100%;
+html {
+    box-sizing: border-box;
 }
 
 h1 {
@@ -21,6 +20,21 @@ h1 {
 
 main {
     padding: 0 2rem;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    flex-flow: column wrap;
+}
+
+.controls > * + * {
+    margin-top: 0.5rem;
+}
+
+.controls > *,
+.controls .nes-btn {
+    width: 100%;
 }
 
 main > * + * {
@@ -41,4 +55,20 @@ main > * + * {
 
 .is-disabled {
     pointer-events: none;
+}
+
+@media (min-width: 580px) {
+    .controls {
+        flex-direction: row;
+    }
+
+    .controls > * + * {
+        margin-top: 0;
+        margin-left: 0.5rem;
+    }
+
+    .controls > *,
+    .controls .nes-btn {
+        width: auto;
+    }
 }

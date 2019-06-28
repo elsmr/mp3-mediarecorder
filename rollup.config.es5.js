@@ -12,7 +12,7 @@ export default {
         include: 'src/**'
     },
     plugins: [
-        typescript({ useTsconfigDeclarationDir: true }),
+        typescript({ useTsconfigDeclarationDir: true, clean: true }),
         resolve(),
         sourceMaps(),
         buble(),

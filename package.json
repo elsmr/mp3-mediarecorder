@@ -1,6 +1,6 @@
 {
   "name": "mp3-mediarecorder",
-  "version": "3.4.2",
+  "version": "3.4.3",
   "description": "MediaRecorder ponyfill that records audio as mp3",
   "main": "dist/mp3-mediarecorder.umd.js",
   "module": "dist/mp3-mediarecorder.es5.js",
@@ -17,7 +17,7 @@
   "scripts": {
     "test": "jest",
     "format": "npm run format:write",
-    "format:write": "prettier --write **/*.{ts,js,  yml,json,md}",
+    "format:write": "prettier --write **/*.{ts,js,yml,json,md}",
     "format:check": "prettier -l **/*.{ts,js,yml,json,md}",
     "tsc": "tsc --noEmit",
     "build": "rimraf dist && rollup -c && rollup -c rollup.config.umd.js && rollup -c rollup.config.es5.js",
@@ -46,28 +46,28 @@
   },
   "homepage": "https://github.com/eliasmeire/mp3-mediarecorder#readme",
   "devDependencies": {
-    "@semantic-release/git": "^7.0.8",
-    "@types/dom-mediacapture-record": "^1.0.0",
-    "@types/jest": "^23.3.13",
-    "concurrently": "^4.1.0",
-    "jest": "^23.6.0",
-    "prettier": "^1.16.1",
-    "rimraf": "^2.6.3",
-    "rollup": "^1.1.2",
-    "rollup-plugin-babel-minify": "^7.0.0",
-    "rollup-plugin-buble": "^0.19.6",
-    "rollup-plugin-copy": "^0.2.3",
-    "rollup-plugin-node-resolve": "^4.0.0",
-    "rollup-plugin-sourcemaps": "^0.4.2",
-    "rollup-plugin-typescript2": "^0.19.2",
-    "semantic-release": "^15.13.3",
-    "serve": "^10.1.1",
-    "ts-jest": "^23.10.5",
-    "typescript": "^3.2.4"
+    "@semantic-release/git": "7.0.14",
+    "@types/dom-mediacapture-record": "1.0.1",
+    "@types/jest": "24.0.15",
+    "concurrently": "4.1.1",
+    "jest": "24.8.0",
+    "prettier": "1.18.2",
+    "rimraf": "2.6.3",
+    "rollup": "1.16.2",
+    "rollup-plugin-babel-minify": "8.0.0",
+    "rollup-plugin-buble": "0.19.6",
+    "rollup-plugin-copy": "3.0.0",
+    "rollup-plugin-node-resolve": "5.0.3",
+    "rollup-plugin-sourcemaps": "0.4.2",
+    "rollup-plugin-typescript2": "0.21.2",
+    "semantic-release": "15.13.18",
+    "serve": "11.0.2",
+    "ts-jest": "24.0.2",
+    "typescript": "3.5.2"
   },
   "dependencies": {
-    "event-target-shim": "^5.0.0",
-    "vmsg": "^0.3.5"
+    "event-target-shim": "^5.0.1",
+    "vmsg": "^0.3.6"
   },
   "release": {
     "plugins": [

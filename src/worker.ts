@@ -5,7 +5,7 @@ export const mp3EncoderWorker = () => {
     // from vmsg
     // Must be in sync with emcc settings!
     const TOTAL_STACK = 5 * 1024 * 1024;
-    const TOTAL_MEMORY = 16 * 1024 * 1024;
+    const TOTAL_MEMORY = 128 * 1024 * 1024;
     const WASM_PAGE_SIZE = 64 * 1024;
     const ctx = (self as any) as WorkerGlobalScope;
     const memory = new WebAssembly.Memory({
@@ -18,13 +18,16 @@ export const mp3EncoderWorker = () => {
     let vmsgRef: number;
     let pcmLeft: Float32Array;
 
-    const getWasmModuleFallback = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
+    const getWasmModuleFallback = (
+        url: string,
+        imports: object
+    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
         return fetch(url)
             .then(response => response.arrayBuffer())
             .then(buffer => WebAssembly.instantiate(buffer, imports));
     };
 
-    const getWasmModule = (url: string, imports: object): Promise<WebAssemblyResultObject> => {
+    const getWasmModule = (url: string, imports: object): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
         if (!WebAssembly.instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }

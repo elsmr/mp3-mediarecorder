@@ -2,6 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>MP3 MediaRecorder</title>
         <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet" />
         <link href="https://unpkg.com/nes.css/css/nes.min.css" rel="stylesheet" />
@@ -16,11 +17,19 @@
             <section class="nes-container with-title" id="recordings">
                 <h2 class="title">Recordings</h2>
             </section>
-            <div>
-                <button class="nes-btn is-primary is-disabled" id="record">Record</button>
-                <button class="nes-btn is-error is-disabled" id="stop">Stop</button>
-                <button class="nes-btn is-disabled" id="pause">Pause</button>
-                <button class="nes-btn is-disabled" id="resume">Resume</button>
+            <div class="controls">
+                <div>
+                    <button class="nes-btn is-primary is-disabled" id="record">Record</button>
+                </div>
+                <div>
+                    <button class="nes-btn is-error is-disabled" id="stop">Stop</button>
+                </div>
+                <div>
+                    <button class="nes-btn is-disabled" id="resume">Resume</button>
+                </div>
+                <div>
+                    <button class="nes-btn is-disabled" id="pause">Pause</button>
+                </div>
             </div>
         </main>
     </body>

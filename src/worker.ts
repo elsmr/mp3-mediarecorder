@@ -1,5 +1,5 @@
 import { WorkerPostMessage } from './types/post-message.type';
-import { WorkerConfig } from './types/worker-config.type';
+import { WorkerConfig } from './types/config.type';
 
 export const mp3EncoderWorker = () => {
     // from vmsg

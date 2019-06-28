@@ -7,16 +7,16 @@ import {
     stopRecordingMessage,
     WorkerPostMessage
 } from './types/post-message.type';
-import { RecorderConfig } from './types/recorder-config.type';
+import { GlobalConfig, Mp3MediaRecorderOptions } from './types/config.type';
 import { mp3EncoderWorker } from './worker';
 
 const MP3_MIME_TYPE = 'audio/mpeg';
-const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+const SafeAudioContext: typeof AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
 const createGain = (ctx: AudioContext) => (ctx.createGain || (ctx as any).createGainNode).call(ctx);
 const createScriptProcessor = (ctx: AudioContext) =>
     (ctx.createScriptProcessor || (ctx as any).createJavaScriptNode).call(ctx, 4096, 1, 1);
 
-export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof MediaRecorder> => {
+export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof MediaRecorder> => {
     const workerBlob = new Blob([`(${mp3EncoderWorker.toString()})()`], {
         type: 'application/javascript'
     });
@@ -36,10 +36,11 @@ export const getMp3MediaRecorder = (config: RecorderConfig): Promise<typeof Medi
 
         static isTypeSupported = (mimeType: string) => mimeType === MP3_MIME_TYPE;
 
-        constructor(stream: MediaStream, audioContext?: AudioContext) {
+        constructor(stream: MediaStream, options: Mp3MediaRecorderOptions = {}) {
             super();
+            const safeOptions = { ...options, audioContext: new SafeAudioContext() };
             this.stream = stream;
-            this.audioContext = audioContext || new AudioContext();
+            this.audioContext = safeOptions.audioContext;
             this.sourceNode = this.audioContext.createMediaStreamSource(stream);
             this.gainNode = createGain(this.audioContext);
             this.gainNode.gain.value = 1;

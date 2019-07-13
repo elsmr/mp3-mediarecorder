@@ -63,7 +63,7 @@
     "semantic-release": "15.13.18",
     "serve": "11.0.2",
     "ts-jest": "24.0.2",
-    "typescript": "3.5.2"
+    "typescript": "3.5.3"
   },
   "dependencies": {
     "event-target-shim": "^5.0.1",

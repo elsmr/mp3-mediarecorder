@@ -21,6 +21,7 @@
     "format:check": "prettier -l **/*.{ts,js,yml,json,md}",
     "tsc": "tsc --noEmit",
     "build": "rimraf dist && rollup -c && rollup -c rollup.config.umd.js && rollup -c rollup.config.es5.js",
+    "bundlesize": "bundlesize",
     "dev": "serve ."
   },
   "repository": {
@@ -49,6 +50,7 @@
     "@semantic-release/git": "7.0.16",
     "@types/dom-mediacapture-record": "1.0.1",
     "@types/jest": "24.0.17",
+    "bundlesize": "^0.18.0",
     "concurrently": "4.1.2",
     "jest": "24.9.0",
     "prettier": "1.18.2",
@@ -77,5 +79,19 @@
       "@semantic-release/github",
       "@semantic-release/git"
     ]
-  }
+  },
+  "bundlesize": [
+    {
+      "path": "dist/mp3-mediarecorder.umd.js",
+      "maxSize": "6kB"
+    },
+    {
+      "path": "dist/mp3-mediarecorder.es5.js",
+      "maxSize": "10kB"
+    },
+    {
+      "path": "dist/mp3-mediarecorder.es2015.js",
+      "maxSize": "10kB"
+    }
+  ]
 }

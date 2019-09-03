@@ -1,4 +1,3 @@
-import minify from 'rollup-plugin-babel-minify';
 import buble from 'rollup-plugin-buble';
 import resolve from 'rollup-plugin-node-resolve';
 import sourceMaps from 'rollup-plugin-sourcemaps';
@@ -11,11 +10,5 @@ export default {
     watch: {
         include: 'src/**'
     },
-    plugins: [
-        typescript({ useTsconfigDeclarationDir: true, clean: true }),
-        resolve(),
-        sourceMaps(),
-        buble(),
-        minify({ comments: false })
-    ]
+    plugins: [typescript({ useTsconfigDeclarationDir: true, clean: true }), resolve(), sourceMaps(), buble()]
 };

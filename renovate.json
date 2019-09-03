@@ -1,5 +1,7 @@
 {
     "extends": ["config:base"],
-    "prConcurrentLimit": 5,
-    "schedule": "every weekend"
+    "prConcurrentLimit": 10,
+    "patch": {
+        "automerge": true
+    }
 }

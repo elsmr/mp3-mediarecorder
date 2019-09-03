@@ -25,6 +25,9 @@ jobs:
         - stage: checks
           name: 'Check formatting'
           script: npm run format:check
+        - stage: checks
+          name: 'Bundlesize'
+          script: npm run bundlesize
         - stage: release
           name: 'Publish demo to Github Pages'
           if: branch = master

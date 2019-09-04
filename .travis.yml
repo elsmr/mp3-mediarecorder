@@ -11,24 +11,24 @@ stages:
 jobs:
     include:
         - stage: cache
-          name: "Warm up cache"
+          name: 'Warm up cache'
           script: echo "Warming up npm cache"
         - stage: checks
-          name: "Build"
+          name: 'Build'
           script:
               - npm run build
               - npm run bundlesize
         - stage: checks
-          name: "Typescript"
+          name: 'Typescript'
           script: npm run tsc
         - stage: checks
-          name: "Unit tests"
+          name: 'Unit tests'
           script: npm test
         - stage: checks
-          name: "Check formatting"
+          name: 'Check formatting'
           script: npm run format:check
         - stage: release
-          name: "Publish demo to Github Pages"
+          name: 'Publish demo to Github Pages'
           if: branch = master
           script: skip
           deploy:

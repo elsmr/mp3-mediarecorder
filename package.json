@@ -48,7 +48,7 @@
   "homepage": "https://github.com/eliasmeire/mp3-mediarecorder#readme",
   "devDependencies": {
     "@semantic-release/git": "7.0.16",
-    "@types/dom-mediacapture-record": "1.0.1",
+    "@types/dom-mediacapture-record": "1.0.2",
     "@types/jest": "24.0.19",
     "bundlesize": "0.18.0",
     "concurrently": "5.0.0",

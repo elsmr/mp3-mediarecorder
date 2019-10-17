@@ -61,7 +61,7 @@ export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof MediaR
 
         stop(): void {
             this.processorNode.disconnect();
-            this.audioContext.suspend();
+            this.audioContext.close();
             worker.postMessage(stopRecordingMessage());
         }
 

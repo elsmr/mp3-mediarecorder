@@ -1,5 +1,25 @@
-import { WorkerPostMessage } from './types/post-message.type';
 import { WorkerConfig } from './types/config.type';
+import { WorkerPostMessage } from './types/post-message.type';
+
+// TODO: remove me when TypeScript 3.7 is released
+interface WebAssemblyNext {
+    instantiateStreaming(
+        request: Response | Promise<Response>,
+        importObject?: any
+    ): Promise<WebAssembly.WebAssemblyInstantiatedSource>;
+}
+
+interface WorkerGlobalScope {
+    onmessage: (message: MessageEvent) => void;
+    postMessage: (message: any) => void;
+}
+
+interface VmsgWasm {
+    vmsg_init: (sampleRate: number) => number;
+    vmsg_encode: (ref: number, length: number) => number;
+    vmsg_free: (ref: number) => void;
+    vmsg_flush: (ref: number) => number;
+}
 
 export const mp3EncoderWorker = () => {
     // from vmsg
@@ -7,7 +27,7 @@ export const mp3EncoderWorker = () => {
     const TOTAL_STACK = 5 * 1024 * 1024;
     const TOTAL_MEMORY = 128 * 1024 * 1024;
     const WASM_PAGE_SIZE = 64 * 1024;
-    const ctx = (self as any) as WorkerGlobalScope;
+    const ctx = (self as unknown) as WorkerGlobalScope;
     const memory = new WebAssembly.Memory({
         initial: TOTAL_MEMORY / WASM_PAGE_SIZE,
         maximum: TOTAL_MEMORY / WASM_PAGE_SIZE
@@ -28,11 +48,13 @@ export const mp3EncoderWorker = () => {
     };
 
     const getWasmModule = (url: string, imports: object): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
-        if (!WebAssembly.instantiateStreaming) {
+        if (!((WebAssembly as unknown) as WebAssemblyNext).instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }
 
-        return WebAssembly.instantiateStreaming(fetch(url), imports).catch(() => getWasmModuleFallback(url, imports));
+        return ((WebAssembly as unknown) as WebAssemblyNext)
+            .instantiateStreaming(fetch(url), imports)
+            .catch(() => getWasmModuleFallback(url, imports));
     };
 
     const getVmsgImports = (): Record<string, any> => {

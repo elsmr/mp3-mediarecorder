@@ -10,6 +10,10 @@ import {
 import { GlobalConfig, Mp3MediaRecorderOptions } from './types/config.type';
 import { mp3EncoderWorker } from './worker';
 
+declare class Mp3MediaRecorder extends MediaRecorder {
+    constructor(stream: MediaStream, options?: Mp3MediaRecorderOptions);
+}
+
 const MP3_MIME_TYPE = 'audio/mpeg';
 const SafeAudioContext: typeof AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
 const createGain = (ctx: AudioContext) => (ctx.createGain || (ctx as any).createGainNode).call(ctx);

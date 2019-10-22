@@ -1,4 +1,5 @@
 import { defineEventAttribute, EventTarget } from 'event-target-shim';
+import { GlobalConfig, Mp3MediaRecorderOptions } from './types/config.type';
 import {
     dataAvailableMessage,
     initMessage,
@@ -7,7 +8,6 @@ import {
     stopRecordingMessage,
     WorkerPostMessage
 } from './types/post-message.type';
-import { GlobalConfig, Mp3MediaRecorderOptions } from './types/config.type';
 import { mp3EncoderWorker } from './worker';
 
 declare class Mp3MediaRecorder extends MediaRecorder {
@@ -20,7 +20,7 @@ const createGain = (ctx: AudioContext) => (ctx.createGain || (ctx as any).create
 const createScriptProcessor = (ctx: AudioContext) =>
     (ctx.createScriptProcessor || (ctx as any).createJavaScriptNode).call(ctx, 4096, 1, 1);
 
-export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof MediaRecorder> => {
+export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof Mp3MediaRecorder> => {
     const workerBlob = new Blob([`(${mp3EncoderWorker.toString()})()`], {
         type: 'application/javascript'
     });
@@ -40,11 +40,10 @@ export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof MediaR
 
         static isTypeSupported = (mimeType: string) => mimeType === MP3_MIME_TYPE;
 
-        constructor(stream: MediaStream, options: Mp3MediaRecorderOptions = {}) {
+        constructor(stream: MediaStream, { audioContext }: Mp3MediaRecorderOptions = {}) {
             super();
-            const safeOptions = { ...options, audioContext: new SafeAudioContext() };
             this.stream = stream;
-            this.audioContext = safeOptions.audioContext;
+            this.audioContext = audioContext || new SafeAudioContext();
             this.sourceNode = this.audioContext.createMediaStreamSource(stream);
             this.gainNode = createGain(this.audioContext);
             this.gainNode.gain.value = 1;
@@ -55,6 +54,9 @@ export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof MediaR
         }
 
         start(): void {
+            if (this.state !== 'inactive') {
+                throw this.getStateError('start');
+            }
             this.processorNode.onaudioprocess = event => {
                 worker.postMessage(dataAvailableMessage(event.inputBuffer.getChannelData(0)));
             };
@@ -64,18 +66,27 @@ export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof MediaR
         }
 
         stop(): void {
+            if (this.state !== 'recording') {
+                throw this.getStateError('stop');
+            }
             this.processorNode.disconnect();
             this.audioContext.suspend();
             worker.postMessage(stopRecordingMessage());
         }
 
         pause(): void {
+            if (this.state !== 'recording') {
+                throw this.getStateError('pause');
+            }
             this.audioContext.suspend();
             this.state = 'paused';
             this.dispatchEvent(new Event('pause'));
         }
 
         resume(): void {
+            if (this.state !== 'paused') {
+                throw this.getStateError('resume');
+            }
             this.audioContext.resume();
             this.state = 'recording';
             this.dispatchEvent(new Event('resume'));
@@ -83,6 +94,12 @@ export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof MediaR
 
         requestData(): void {
             // not implemented, dataavailable event only fires when encoding is finished
+        }
+
+        private getStateError(method: string) {
+            return new Error(
+                `Uncaught DOMException: Failed to execute '${method}' on 'MediaRecorder': The MediaRecorder's state is '${this.state}'.`
+            );
         }
 
         private onWorkerMessage = (event: MessageEvent): void => {
@@ -96,7 +113,7 @@ export const getMp3MediaRecorder = (config: GlobalConfig): Promise<typeof MediaR
                     break;
                 }
                 case PostMessageType.ERROR: {
-                    const error = new DOMException(message.error);
+                    const error = new Error(message.error) as DOMException;
                     const fallbackEvent = new Event('error');
                     (fallbackEvent as any).error = error;
                     const event = window.MediaRecorderErrorEvent

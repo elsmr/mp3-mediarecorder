@@ -50,25 +50,17 @@
     "@semantic-release/git": "7.0.17",
     "@types/dom-mediacapture-record": "1.0.2",
     "@types/jest": "24.0.20",
+    "@yarnpkg/pnpify": "^2.0.0-rc.7",
     "bundlesize": "0.18.0",
-    "concurrently": "5.0.0",
     "jest": "24.9.0",
     "prettier": "1.18.2",
-    "rimraf": "3.0.0",
-    "rollup": "1.25.2",
-    "rollup-plugin-babel-minify": "9.1.0",
-    "rollup-plugin-buble": "0.19.8",
-    "rollup-plugin-copy": "3.1.0",
-    "rollup-plugin-node-resolve": "5.2.0",
-    "rollup-plugin-sourcemaps": "0.4.2",
-    "rollup-plugin-typescript2": "0.24.3",
     "semantic-release": "15.13.28",
     "serve": "11.2.0",
     "ts-jest": "24.1.0",
     "typescript": "3.6.4"
   },
   "dependencies": {
-    "event-target-shim": "^5.0.1",
+    "event-target-shim": "^5.0.1"
   },
   "release": {
     "plugins": [
@@ -92,5 +84,8 @@
       "path": "dist/mp3-mediarecorder.es2015.js",
       "maxSize": "10kB"
     }
-  ]
+  ],
+  "installConfig": {
+    "pnp": true
+  }
 }

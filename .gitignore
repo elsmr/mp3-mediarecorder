@@ -63,3 +63,7 @@ typings/
 .rpt2_cache
 
 dist
+
+# yarn pnp
+.pnp.js
+.yarn

@@ -2,9 +2,11 @@
   "name": "mp3-mediarecorder",
   "version": "3.4.5",
   "description": "MediaRecorder ponyfill that records audio as mp3",
-  "main": "dist/mp3-mediarecorder.umd.js",
-  "module": "dist/mp3-mediarecorder.es5.js",
-  "es2015": "dist/mp3-mediarecorder.es2015.js",
+  "source": "src/recorder.ts",
+  "unpkg": "dist/mp3-mediarecorder.umd.js",
+  "main": "dist/mp3-mediarecorder.cjs.js",
+  "umd:main": "dist/mp3-mediarecorder.umd.js",
+  "module": "dist/mp3-mediarecorder.es.js",
   "typings": "dist/types/recorder.d.ts",
   "types": "dist/types/recorder.d.ts",
   "files": [
@@ -20,9 +22,9 @@
     "format:write": "prettier --write **/*.{ts,js,yml,json,md}",
     "format:check": "prettier -l **/*.{ts,js,yml,json,md}",
     "tsc": "tsc --noEmit",
-    "build": "rimraf dist && rollup -c && rollup -c rollup.config.umd.js && rollup -c rollup.config.es5.js",
+    "build": "microbundle -i src/recorder.ts -i src/worker.ts -o dist",
     "bundlesize": "bundlesize",
-    "dev": "serve ."
+    "dev": "microbundle watch"
   },
   "repository": {
     "type": "git",
@@ -53,9 +55,10 @@
     "@yarnpkg/pnpify": "2.0.0-rc.7",
     "bundlesize": "0.18.0",
     "jest": "24.9.0",
+    "microbundle": "^0.11.0",
+    "microenvi": "^0.3.1",
     "prettier": "1.18.2",
     "semantic-release": "15.13.28",
-    "serve": "11.2.0",
     "ts-jest": "24.1.0",
     "typescript": "3.6.4"
   },
@@ -74,7 +77,7 @@
   "bundlesize": [
     {
       "path": "dist/mp3-mediarecorder.umd.js",
-      "maxSize": "6kB"
+      "maxSize": "5kB"
     },
     {
       "path": "dist/mp3-mediarecorder.es5.js",
@@ -84,8 +87,5 @@
       "path": "dist/mp3-mediarecorder.es2015.js",
       "maxSize": "10kB"
     }
-  ],
-  "installConfig": {
-    "pnp": true
-  }
+  ]
 }

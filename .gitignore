@@ -67,3 +67,4 @@ dist
 # yarn pnp
 .pnp.js
 .yarn
+.vscode

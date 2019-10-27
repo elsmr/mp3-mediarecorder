@@ -1,14 +1,6 @@
 import { defineEventAttribute, EventTarget } from 'event-target-shim';
 import { GlobalConfig, Mp3MediaRecorderOptions } from './types/config.type';
-import {
-    dataAvailableMessage,
-    initMessage,
-    PostMessageType,
-    startRecordingMessage,
-    stopRecordingMessage,
-    WorkerPostMessage
-} from './types/post-message.type';
-import { mp3EncoderWorker } from './worker';
+import { dataAvailableMessage, initMessage, PostMessageType, startRecordingMessage, stopRecordingMessage, WorkerPostMessage } from './types/post-message.type';
 
 declare class Mp3MediaRecorder extends MediaRecorder {
     constructor(stream: MediaStream, options?: Mp3MediaRecorderOptions);

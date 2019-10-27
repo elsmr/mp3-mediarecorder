@@ -69,7 +69,6 @@
   },
   "dependencies": {
     "event-target-shim": "^5.0.1",
-    "vmsg": "^0.3.6"
   },
   "release": {
     "plugins": [

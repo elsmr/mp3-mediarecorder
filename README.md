@@ -12,7 +12,8 @@ View the demo app [Live](https://eliasmei.re/mp3-mediarecorder) / [Code](demo)
 -   Audio encoding off the main thread using Web Workers
 -   Consistent MP3 file output in all supported browsers
 -   High quality type definitions
--   3.7kB gzipped
+-   3kB main library
+-   80kB Worker with wasm module (Loaded async)
 
 ## Browser Support
 

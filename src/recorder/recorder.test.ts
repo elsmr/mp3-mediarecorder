@@ -1,10 +1,5 @@
-import { getMp3MediaRecorder } from './recorder';
-import { Mp3MediaRecorderOptions } from './types/config.type';
-import { blobReadyMessage, workerRecordingMessage } from './types/post-message.type';
-
-declare class Mp3MediaRecorder extends MediaRecorder {
-    constructor(stream: MediaStream, options: Mp3MediaRecorderOptions);
-}
+import { blobReadyMessage, workerRecordingMessage } from '../types/post-message.type';
+import { Mp3MediaRecorder } from './index';
 
 describe('mp3-mediarecorder', () => {
     let workerPostMessageListeners: Record<string, Function[]>;
@@ -75,24 +70,14 @@ describe('mp3-mediarecorder', () => {
         };
     });
 
-    async function instantiateRecorder(): Promise<Mp3MediaRecorder> {
-        const Mp3MediaRecorderPromise = getMp3MediaRecorder({ wasmURL: 'mockUrl' });
-        worker.onmessage({ data: { type: 'WORKER_READY' } });
-        const RecorderClass = await Mp3MediaRecorderPromise;
-        return new RecorderClass(new MediaStream(), { audioContext });
+    function instantiateRecorder(): Mp3MediaRecorder {
+        return new Mp3MediaRecorder(new MediaStream(), { audioContext, worker });
     }
 
     describe('export typing', () => {
-        it('should have an export called getMp3MediaRecorder', () => {
-            expect(getMp3MediaRecorder).toBeDefined();
-        });
-
-        it('getMp3MediaRecorder should return a Promise with a MediaRecorder', async () => {
-            const recorderPromise = getMp3MediaRecorder({ wasmURL: 'mockUrl' });
-            worker.onmessage({ data: { type: 'WORKER_READY' } });
-            expect(recorderPromise).toBeInstanceOf(Promise);
-            const RecorderClass = await recorderPromise;
-            const recorder = new RecorderClass(mediaStream, { audioContext });
+        it('should have an export called Mp3MediaRecorder', () => {
+            expect(Mp3MediaRecorder).toBeDefined();
+            const recorder = instantiateRecorder();
             expect(recorder.start).toBeInstanceOf(Function);
             expect(recorder.stop).toBeInstanceOf(Function);
             expect(recorder.pause).toBeInstanceOf(Function);
@@ -102,7 +87,7 @@ describe('mp3-mediarecorder', () => {
 
     describe('start', () => {
         it('should set the recorder state to "recording" when worker starts recording', async () => {
-            const recorder = await instantiateRecorder();
+            const recorder = instantiateRecorder();
             recorder.start();
             expect(recorder.state).toBe('inactive');
             worker.onmessage({ data: workerRecordingMessage() });
@@ -110,7 +95,7 @@ describe('mp3-mediarecorder', () => {
         });
 
         it('should emit a start event', async done => {
-            const recorder = await instantiateRecorder();
+            const recorder = instantiateRecorder();
             recorder.addEventListener('start', event => {
                 expect(event.type).toEqual('start');
                 done();
@@ -121,7 +106,7 @@ describe('mp3-mediarecorder', () => {
         });
 
         it('should throw when start is called while recording', async () => {
-            const recorder = await instantiateRecorder();
+            const recorder = instantiateRecorder();
             worker.onmessage({ data: workerRecordingMessage() });
             expect(() => recorder.start()).toThrowError(
                 new Error(
@@ -134,7 +119,7 @@ describe('mp3-mediarecorder', () => {
     describe('pause', () => {
         let recorder: Mp3MediaRecorder;
         beforeEach(async () => {
-            recorder = await instantiateRecorder();
+            recorder = instantiateRecorder();
             recorder.start();
             worker.onmessage({ data: workerRecordingMessage() });
         });
@@ -153,7 +138,7 @@ describe('mp3-mediarecorder', () => {
         });
 
         it('should throw when pause is called before recording', async () => {
-            const recorder = await instantiateRecorder();
+            const recorder = instantiateRecorder();
             expect(() => recorder.pause()).toThrowError(
                 new Error(
                     "Uncaught DOMException: Failed to execute 'pause' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."
@@ -166,7 +151,7 @@ describe('mp3-mediarecorder', () => {
         let recorder: Mp3MediaRecorder;
 
         beforeEach(async () => {
-            recorder = await instantiateRecorder();
+            recorder = instantiateRecorder();
             recorder.start();
             worker.onmessage({ data: workerRecordingMessage() });
             recorder.pause();
@@ -187,7 +172,7 @@ describe('mp3-mediarecorder', () => {
         });
 
         it('should throw when resume is called before recording', async () => {
-            const recorder = await instantiateRecorder();
+            const recorder = instantiateRecorder();
             expect(() => recorder.resume()).toThrowError(
                 new Error(
                     "Uncaught DOMException: Failed to execute 'resume' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."
@@ -200,7 +185,7 @@ describe('mp3-mediarecorder', () => {
         let recorder: Mp3MediaRecorder;
 
         beforeEach(async () => {
-            recorder = await instantiateRecorder();
+            recorder = instantiateRecorder();
             recorder.start();
             worker.onmessage({ data: workerRecordingMessage() });
         });
@@ -228,7 +213,7 @@ describe('mp3-mediarecorder', () => {
         });
 
         it('should throw when stop is called before starting a recording', async () => {
-            const recorder = await instantiateRecorder();
+            const recorder = instantiateRecorder();
             expect(() => recorder.stop()).toThrowError(
                 new Error(
                     "Uncaught DOMException: Failed to execute 'stop' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."
@@ -241,9 +226,9 @@ describe('mp3-mediarecorder', () => {
         let recorder: Mp3MediaRecorder;
         let recording: Blob;
 
-        beforeEach(async () => {
+        beforeEach(() => {
             recording = new Blob([]);
-            recorder = await instantiateRecorder();
+            recorder = instantiateRecorder();
         });
 
         it('should emit a dataavailable event when the worker has recorded', async done => {

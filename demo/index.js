@@ -10,75 +10,71 @@ let recorder = null;
 let blobs = [];
 let mediaStream = null;
 let isPaused = false;
-let Mp3MediaRecorder = null;
 const supportsWasm = WebAssembly && typeof WebAssembly.instantiate === 'function';
 const supportsUserMediaAPI = navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function';
 const isBrowserSupported = supportsWasm && supportsUserMediaAPI;
 
 if (isBrowserSupported) {
-    window.mp3MediaRecorder
-        .getMp3MediaRecorder({ wasmURL: 'https://unpkg.com/vmsg@0.3.5/vmsg.wasm' })
-        .then(recorderClass => {
-            Mp3MediaRecorder = recorderClass;
-            startButton.classList.remove('is-disabled');
-        });
+    const worker = new Worker('worker.js');
 
     startButton.addEventListener('click', () => {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(
-            stream => {
-                mediaStream = stream;
-                recorder = new Mp3MediaRecorder(stream);
-                recorder.start();
+        navigator.mediaDevices
+            .getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+            .then(
+                stream => {
+                    mediaStream = stream;
+                    recorder = new window.mp3MediaRecorder.Mp3MediaRecorder(stream, { worker });
+                    recorder.start();
 
-                recorder.onstart = e => {
-                    console.log('onstart', e);
-                    blobs = [];
-                    startButton.classList.add('is-disabled');
-                    stopButton.classList.remove('is-disabled');
-                    pauseButton.classList.remove('is-disabled');
-                };
+                    recorder.onstart = e => {
+                        console.log('onstart', e);
+                        blobs = [];
+                        startButton.classList.add('is-disabled');
+                        stopButton.classList.remove('is-disabled');
+                        pauseButton.classList.remove('is-disabled');
+                    };
 
-                recorder.ondataavailable = e => {
-                    console.log('ondataavailable', e);
-                    blobs.push(e.data);
-                };
+                    recorder.ondataavailable = e => {
+                        console.log('ondataavailable', e);
+                        blobs.push(e.data);
+                    };
 
-                recorder.onstop = e => {
-                    console.log('onstop', e);
-                    mediaStream.getTracks().forEach(track => track.stop());
+                    recorder.onstop = e => {
+                        console.log('onstop', e);
+                        mediaStream.getTracks().forEach(track => track.stop());
 
-                    startButton.classList.remove('is-disabled');
-                    pauseButton.classList.add('is-disabled');
-                    stopButton.classList.add('is-disabled');
+                        startButton.classList.remove('is-disabled');
+                        pauseButton.classList.add('is-disabled');
+                        stopButton.classList.add('is-disabled');
 
-                    const mp3Blob = new Blob(blobs, { type: 'audio/mpeg' });
-                    const mp3BlobUrl = URL.createObjectURL(mp3Blob);
-                    const audio = new Audio();
-                    audio.controls = true;
-                    audio.src = mp3BlobUrl;
-                    recordings.appendChild(audio);
-                };
+                        const mp3Blob = new Blob(blobs, { type: 'audio/mpeg' });
+                        const mp3BlobUrl = URL.createObjectURL(mp3Blob);
+                        const audio = new Audio();
+                        audio.controls = true;
+                        audio.src = mp3BlobUrl;
+                        recordings.appendChild(audio);
+                    };
 
-                recorder.onpause = e => {
-                    console.log('onpause', e);
-                    resumeButton.classList.remove('is-disabled');
-                    pauseButton.classList.add('is-disabled');
-                };
+                    recorder.onpause = e => {
+                        console.log('onpause', e);
+                        resumeButton.classList.remove('is-disabled');
+                        pauseButton.classList.add('is-disabled');
+                    };
 
-                recorder.onresume = e => {
-                    console.log('onresume', e);
-                    resumeButton.classList.add('is-disabled');
-                    pauseButton.classList.remove('is-disabled');
-                };
+                    recorder.onresume = e => {
+                        console.log('onresume', e);
+                        resumeButton.classList.add('is-disabled');
+                        pauseButton.classList.remove('is-disabled');
+                    };
 
-                recorder.onerror = e => {
-                    console.error('onerror', e);
-                };
-            },
-            reason => {
-                console.warn('Could not get microphone access.\nError:', reason.message);
-            }
-        );
+                    recorder.onerror = e => {
+                        console.error('onerror', e);
+                    };
+                },
+                reason => {
+                    console.warn('Could not get microphone access.\nError:', reason.message);
+                }
+            );
     });
 
     stopButton.addEventListener('click', () => {

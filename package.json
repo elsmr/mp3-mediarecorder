@@ -40,7 +40,9 @@
     "encoding",
     "libmp3lame",
     "webassembly",
-    "vmsg"
+    "vmsg",
+    "record",
+    "encode"
   ],
   "author": "Elias Meire",
   "license": "MIT",

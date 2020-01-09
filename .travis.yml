@@ -1,4 +1,4 @@
-cache: npm
+cache: yarn
 language: node_js
 node_js:
     - lts/*
@@ -16,17 +16,17 @@ jobs:
         - stage: checks
           name: 'Build'
           script:
-              - npm run build
-              - npm run bundlesize
+              - yarn build
+              - yarn bundlesize
         - stage: checks
           name: 'Typescript'
-          script: npm run tsc
+          script: yarn tsc
         - stage: checks
           name: 'Unit tests'
-          script: npm test
+          script: yarn test
         - stage: checks
           name: 'Check formatting'
-          script: npm run format:check
+          script: yarn format:check
         - stage: release
           name: 'Publish demo to Github Pages'
           if: branch = master
@@ -43,5 +43,5 @@ jobs:
           name: Release to npm
           if: branch = master AND commit_message =~ /(feat|fix|BREAKING CHANGE)/
           script:
-              - npm run build
+              - yarn build
               - npx semantic-release

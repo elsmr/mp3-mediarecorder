@@ -1,6 +1,6 @@
 {
   "name": "mp3-mediarecorder",
-  "version": "3.4.5",
+  "version": "3.4.6",
   "description": "MediaRecorder ponyfill that records audio as mp3",
   "main": "dist/mp3-mediarecorder.umd.js",
   "module": "dist/mp3-mediarecorder.es5.js",
@@ -68,7 +68,7 @@
     "typescript": "3.6.4"
   },
   "dependencies": {
-    "event-target-shim": "^5.0.1",
+    "event-target-shim": "github:cpmsmith/event-target-shim#sentry-infinite-recursion",
     "vmsg": "^0.3.6"
   },
   "release": {

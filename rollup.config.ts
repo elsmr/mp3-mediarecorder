@@ -1,16 +1,10 @@
 import buble from 'rollup-plugin-buble';
 import resolve from 'rollup-plugin-node-resolve';
 import sourceMaps from 'rollup-plugin-sourcemaps';
-import { terser } from 'rollup-plugin-terser';
 import ts from 'rollup-plugin-typescript2';
 
 const pkg = require('./package.json');
-const basePlugins = [
-    ts({ useTsconfigDeclarationDir: true, clean: true }),
-    resolve(),
-    sourceMaps(),
-    terser({ module: true })
-];
+const basePlugins = [ts({ useTsconfigDeclarationDir: true, clean: true }), resolve(), sourceMaps()];
 const pluginsWithTranspile = [...basePlugins, buble()];
 const baseOutputOptions = {
     compact: true,

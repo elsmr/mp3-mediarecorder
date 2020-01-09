@@ -1,5 +1,4 @@
 import { defineEventAttribute, EventTarget } from 'event-target-shim';
-import { Mp3MediaRecorderOptions } from '../types/config.type';
 import {
     dataAvailableMessage,
     PostMessageType,
@@ -7,6 +6,11 @@ import {
     stopRecordingMessage,
     WorkerPostMessage
 } from '../types/post-message.type';
+
+export interface Mp3MediaRecorderOptions extends MediaRecorderOptions {
+    worker: Worker;
+    audioContext?: AudioContext;
+}
 
 const MP3_MIME_TYPE = 'audio/mpeg';
 const SafeAudioContext: typeof AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;

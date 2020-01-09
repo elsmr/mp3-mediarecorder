@@ -68,7 +68,7 @@
     "typescript": "3.6.4"
   },
   "dependencies": {
-    "event-target-shim": "^5.0.1",
+    "event-target-shim": "github:cpmsmith/event-target-shim#sentry-infinite-recursion",
     "vmsg": "^0.3.6"
   },
   "release": {

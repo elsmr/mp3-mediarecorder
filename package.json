@@ -64,7 +64,7 @@
     "rollup-plugin-typescript2": "0.24.3",
     "semantic-release": "15.13.30",
     "serve": "11.2.0",
-    "ts-jest": "24.1.0",
+    "ts-jest": "24.3.0",
     "typescript": "3.6.4"
   },
   "dependencies": {

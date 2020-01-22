@@ -1,4 +1,4 @@
-![mp3-mediarecorder header](https://user-images.githubusercontent.com/8850410/72909440-4d717c00-3d37-11ea-81b7-1802a5d8b7fe.png)
+![mp3-mediarecorder header](https://user-images.githubusercontent.com/8850410/72910483-e0f77c80-3d38-11ea-9946-3878fcc660d1.png)
 
 # 🎙 mp3-mediarecorder
 

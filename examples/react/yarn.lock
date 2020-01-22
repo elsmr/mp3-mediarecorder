@@ -6553,10 +6553,10 @@ move-concurrently@^1.0.1:
     rimraf "^2.5.4"
     run-queue "^1.0.3"
 
-mp3-mediarecorder@^3.4.7:
-  version "3.4.7"
-  resolved "https://registry.yarnpkg.com/mp3-mediarecorder/-/mp3-mediarecorder-3.4.7.tgz#c8195e77507fa55a989a217658aff10772a36612"
-  integrity sha512-vgYVO89lewIbEWkrBikUaE73bKS3prM2iYpjhf77OsNi2bUTRIj5Rlub2D5smEPDsiCRy35Z5UMg3gPx3Gq4qA==
+mp3-mediarecorder@4.0.0-alpha.2:
+  version "4.0.0-alpha.2"
+  resolved "https://registry.yarnpkg.com/mp3-mediarecorder/-/mp3-mediarecorder-4.0.0-alpha.2.tgz#6dac3a84a1b7d4eabd0573ebda2f0c159c804324"
+  integrity sha512-yV8jKsykT7M/DnlE6bTKgiy3pt5lkiGGpG4F49iCfAu9O69Fu810nuRJCW2V6qdyFeXsxBVZg9MVZiXRzKs/rQ==
   dependencies:
     event-target-shim "github:cpmsmith/event-target-shim#sentry-infinite-recursion"
     vmsg "^0.3.6"

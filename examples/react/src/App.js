@@ -58,7 +58,7 @@ function App() {
     return (
         <main className="App" id="main">
             <h1>MP3 MediaRecorder</h1>
-            <section className="nes-container with-title">
+            <section className="recordings nes-container with-title">
                 <h2 className="title">Recordings</h2>
                 {recordings.map(recording => (
                     <audio key={recording} controls src={recording}></audio>

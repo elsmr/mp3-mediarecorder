@@ -81,7 +81,6 @@ export class Mp3MediaRecorder extends EventTarget {
             throw this.getStateError('pause');
         }
         this.audioContext.suspend().then(() => {
-            console.log('HELLo');
             this.state = 'paused';
             this.dispatchEvent(new Event('pause'));
         });

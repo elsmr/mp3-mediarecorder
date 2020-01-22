@@ -26,9 +26,9 @@ describe('mp3-mediarecorder', () => {
         } as any;
         workerPostMessage = jest.fn();
         audioContext = {
-            resume: jest.fn(),
+            resume: jest.fn(() => Promise.resolve()),
             close: jest.fn(),
-            suspend: jest.fn(),
+            suspend: jest.fn(() => Promise.resolve()),
             createMediaStreamSource: jest.fn(() => sourceNode),
             createGain: jest.fn(() => gainNode),
             createScriptProcessor: jest.fn(() => processorNode)
@@ -60,8 +60,8 @@ describe('mp3-mediarecorder', () => {
                 }
             })
         };
-
         window.Worker = jest.fn(() => worker);
+        Object.setPrototypeOf(worker, window.Worker);
         window.MediaStream = jest.fn(() => mediaStream);
 
         window.URL = class extends URL {
@@ -109,9 +109,7 @@ describe('mp3-mediarecorder', () => {
             const recorder = instantiateRecorder();
             worker.onmessage({ data: workerRecordingMessage() });
             expect(() => recorder.start()).toThrowError(
-                new Error(
-                    "Uncaught DOMException: Failed to execute 'start' on 'MediaRecorder': The MediaRecorder's state is 'recording'."
-                )
+                new Error("Failed to execute 'start' on 'MediaRecorder': The MediaRecorder's state is 'recording'.")
             );
         });
     });
@@ -124,9 +122,12 @@ describe('mp3-mediarecorder', () => {
             worker.onmessage({ data: workerRecordingMessage() });
         });
 
-        it('should set the recorder state to "paused"', async () => {
+        it('should set the recorder state to "paused"', async done => {
+            recorder.addEventListener('pause', () => {
+                expect(recorder.state).toBe('paused');
+                done();
+            });
             recorder.pause();
-            expect(recorder.state).toBe('paused');
         });
 
         it('should emit a pause event', async done => {
@@ -140,9 +141,7 @@ describe('mp3-mediarecorder', () => {
         it('should throw when pause is called before recording', async () => {
             const recorder = instantiateRecorder();
             expect(() => recorder.pause()).toThrowError(
-                new Error(
-                    "Uncaught DOMException: Failed to execute 'pause' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."
-                )
+                new Error("Failed to execute 'pause' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.")
             );
         });
     });
@@ -157,10 +156,13 @@ describe('mp3-mediarecorder', () => {
             recorder.pause();
         });
 
-        it('should set the recorder state to "recording"', async () => {
+        it('should set the recorder state to "recording"', async done => {
             expect(recorder.state).toBe('paused');
+            recorder.addEventListener('resume', () => {
+                expect(recorder.state).toBe('recording');
+                done();
+            });
             recorder.resume();
-            expect(recorder.state).toBe('recording');
         });
 
         it('should emit a resume event', async done => {
@@ -174,9 +176,7 @@ describe('mp3-mediarecorder', () => {
         it('should throw when resume is called before recording', async () => {
             const recorder = instantiateRecorder();
             expect(() => recorder.resume()).toThrowError(
-                new Error(
-                    "Uncaught DOMException: Failed to execute 'resume' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."
-                )
+                new Error("Failed to execute 'resume' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.")
             );
         });
     });
@@ -199,7 +199,7 @@ describe('mp3-mediarecorder', () => {
 
         it('should suspend audio context and clean up audio nodes', async () => {
             recorder.stop();
-            expect(audioContext.suspend).toHaveBeenCalled();
+            expect(audioContext.close).toHaveBeenCalled();
             expect(processorNode.disconnect).toHaveBeenCalled();
         });
 
@@ -215,9 +215,7 @@ describe('mp3-mediarecorder', () => {
         it('should throw when stop is called before starting a recording', async () => {
             const recorder = instantiateRecorder();
             expect(() => recorder.stop()).toThrowError(
-                new Error(
-                    "Uncaught DOMException: Failed to execute 'stop' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."
-                )
+                new Error("Failed to execute 'stop' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.")
             );
         });
     });

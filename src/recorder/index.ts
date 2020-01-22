@@ -36,7 +36,7 @@ export class Mp3MediaRecorder extends EventTarget {
     constructor(stream: MediaStream, { audioContext, worker }: Mp3MediaRecorderOptions) {
         super();
 
-        if (!(worker instanceof Worker)) {
+        if (!worker) {
             throw new Error('No worker provided in Mp3MediaRecorder constructor.');
         }
         this.stream = stream;
@@ -81,6 +81,7 @@ export class Mp3MediaRecorder extends EventTarget {
             throw this.getStateError('pause');
         }
         this.audioContext.suspend().then(() => {
+            console.log('HELLo');
             this.state = 'paused';
             this.dispatchEvent(new Event('pause'));
         });

@@ -115,7 +115,7 @@ export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
         }
     };
 
-    ctx.addEventListener('message', function(event) {
+    ctx.addEventListener('message', (event: MessageEvent) => {
         const message: WorkerPostMessage = event.data;
         try {
             switch (message.type) {

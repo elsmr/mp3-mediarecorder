@@ -1,5 +1,5 @@
-import buble from 'rollup-plugin-buble';
-import resolve from 'rollup-plugin-node-resolve';
+import buble from '@rollup/plugin-buble';
+import resolve from '@rollup/plugin-node-resolve';
 import sourceMaps from 'rollup-plugin-sourcemaps';
 import ts from 'rollup-plugin-typescript2';
 

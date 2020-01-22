@@ -59,7 +59,7 @@ typings/
 
 # build output
 dist
-worker
+/worker
 test
 build
 

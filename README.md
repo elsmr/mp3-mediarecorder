@@ -42,32 +42,96 @@ See [this example](examples/basic) for more information.
 
 ## Usage
 
-💡 For more detailed API docs, check out [MediaRecorder on MDN](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder)
-
 We'll have two files: `index.js` and `worker.js`. The first is what we import from our app, so it runs on the main thread — it imports our worker (using worker-loader or workerize-loader) and passes it to `Mp3MediaRecorder` to create a recorder instance around it.
 
-### index.js:
+### index.js
 
 ```ts
 import { Mp3MediaRecorder } from 'mp3-mediarecorder';
 import Mp3RecorderWorker from 'workerize-loader!./worker';
+
+const recorder = new Mp3MediaRecorder(
+    mediaStream, // MediaStream instance
+    { worker: Mp3RecorderWorker() }
+);
+recorder.start(); // 🎉
 ```
 
-### worker.js:
+In most cases the MediaStream instance will come from the [getUserMedia API](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia). For a usage example, see [here](https://github.com/eliasmeire/mp3-mediarecorder/blob/next/examples/react/src/App.js#L18-L19).
 
-```
-import createStore from 'stockroom/worker'
+### worker.js
 
-let store = createStore({
-count: 0
-})
+```ts
+import { initMp3MediaEncoder } from 'mp3-mediarecorder/worker';
 
-store.registerActions( store => ({
-increment: ({ count }) => ({ count: count+1 })
-}) )
+initMp3MediaEncoder({ vmsgWasmUrl: '/url/to/vmsg.wasm' });
 ```
 
-The second file is our worker code, which runs in the background thread. Here we import Stockroom's worker-side "other half", stockroom/worker. This function returns a store instance just like createStore() does in Unistore, but sets things up to synchronize with the main/parent thread. It also adds a registerActions method to the store, which you can use to define globally-available actions for that store. These actions can be triggered from the main thread by invoking store.action('theActionName') and calling the function it returns.
+The second file is our worker code, which runs in the background thread. Here we import `initMp3MediaEncoder` from `mp3-mediarecorder/worker`. This sets things up to communicate with the main thread.
+
+## API
+
+### module:mp3-mediarecorder
+
+#### Mp3MediaRecorder
+
+Mp3MediaRecorder is a class that has the same API as the standard [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder). If you want to see the full API please check out [the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder).
+
+**Constructor parameters**
+
+The Mp3MediaRecorder constructor parameters differ from the standard API.
+
+-   `mediaStream: MediaStream` An instance of **[MediaStream](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream)** (eg: from [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia))
+
+-   `options: Mp3MediaRecorderOptions`
+    -   `worker: Worker` An instantiated **[Web Worker](https://developer.mozilla.org/docs/Web/JavaScript)** (eg: `new Worker('./worker.js')`)
+    -   `audioContext?: AudioContext`An instantiated **[AudioContext](https://developer.mozilla.org/docs/Web/JavaScript)** (eg: `new AudioContext()`)
+        This might be useful when you want to fully control your AudioContext and reuse it across multiple recordings. ⚠️ Chrome and Safari limit the number of AudioContext objects.
+
+**Example**
+
+```ts
+const recorder = new Mp3MediaRecorder(
+    mediaStream, // MediaStream instance
+    {
+        worker: Mp3RecorderWorker(),
+        // Optionally supply your own AudioContext
+        audioContext: new AudioContext()
+    }
+);
+```
+
+### module:mp3-mediarecorder/worker
+
+The [Web Worker](https://developer.mozilla.org/docs/Web/JavaScript) side the of the recorder. The worker will communicate with the main thread to encode the mp3 file.
+
+#### initMp3MediaEncoder
+
+Sets up the communication with the main thread.
+
+**Parameters**
+
+-   `vmsgWasmUrl: string` The URL of the `vmsg.wasm` file.
+    This could be self-hosted or from a CDN. The Worker fill fetch this URL and instantiate a WebAssembly module from it.
+
+**Example**
+
+```ts
+import { initMp3MediaEncoder } from 'mp3-mediarecorder/worker';
+
+initMp3MediaEncoder({ vmsgWasmUrl: '/url/to/vmsg.wasm' });
+```
+
+**Constructor parameters**
+
+The Mp3MediaRecorder constructor parameters differ from the standard API.
+
+-   `mediaStream: MediaStream` An instance of **[MediaStream](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream)** (eg: from [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia))
+
+-   `options: Mp3MediaRecorderOptions`
+    -   `worker: Worker` An instantiated **[Web Worker](https://developer.mozilla.org/docs/Web/JavaScript)** (eg: `new Worker('./worker.js')`)
+    -   `audioContext?: AudioContext`An instantiated **[AudioContext](https://developer.mozilla.org/docs/Web/JavaScript)** (eg: `new AudioContext()`)
+        This might be useful when you want to fully control your AudioContext and reuse it across multiple recordings. ⚠️ Chrome and Safari limit the number of AudioContext objects.
 
 ## Why
 
@@ -79,10 +143,8 @@ Even in browsers with support for MediaRecorder, the available audio formats dif
 
 ## Limitations
 
--   The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument
--   `MediaRecorder.requestData` does not trigger a `dataavailable` event
--   `bitsPerSecond` is not configurable, the `MediaRecorder` constructor ignores its `options` argument.
--   The module returns a Promise to avoid delaying `MediaRecorder.start` until the Web Worker is ready. Once the Promise is resolved, the Web Worker will be ready to start encoding.
+-   The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument. As a result,`MediaRecorder.requestData` does not trigger a `dataavailable` event
+-   `bitsPerSecond` is not configurable, the `MediaRecorder` constructor will ignore this option.
 
 ## Related
 

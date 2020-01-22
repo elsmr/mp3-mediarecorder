@@ -86,7 +86,7 @@ The Mp3MediaRecorder constructor parameters differ from the standard API.
 -   `options: Mp3MediaRecorderOptions`
     -   `worker: Worker` An instantiated **[Web Worker](https://developer.mozilla.org/docs/Web/JavaScript)** (eg: `new Worker('./worker.js')`)
     -   `audioContext?: AudioContext`An instantiated **[AudioContext](https://developer.mozilla.org/docs/Web/JavaScript)** (eg: `new AudioContext()`)
-        This might be useful when you want to fully control your AudioContext and reuse it across multiple recordings. ⚠️ Chrome and Safari limit the number of AudioContext objects.
+        This might be useful if you want to full control over the AudioContext. Chrome and Safari limit the number of AudioContext objects.
 
 **Example**
 
@@ -121,17 +121,6 @@ import { initMp3MediaEncoder } from 'mp3-mediarecorder/worker';
 
 initMp3MediaEncoder({ vmsgWasmUrl: '/url/to/vmsg.wasm' });
 ```
-
-**Constructor parameters**
-
-The Mp3MediaRecorder constructor parameters differ from the standard API.
-
--   `mediaStream: MediaStream` An instance of **[MediaStream](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream)** (eg: from [getUserMedia](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia))
-
--   `options: Mp3MediaRecorderOptions`
-    -   `worker: Worker` An instantiated **[Web Worker](https://developer.mozilla.org/docs/Web/JavaScript)** (eg: `new Worker('./worker.js')`)
-    -   `audioContext?: AudioContext`An instantiated **[AudioContext](https://developer.mozilla.org/docs/Web/JavaScript)** (eg: `new AudioContext()`)
-        This might be useful when you want to fully control your AudioContext and reuse it across multiple recordings. ⚠️ Chrome and Safari limit the number of AudioContext objects.
 
 ## Why
 

@@ -1,4 +1,4 @@
-![mp3-mediarecorder header](https://user-images.githubusercontent.com/8850410/72910483-e0f77c80-3d38-11ea-9946-3878fcc660d1.png)
+![mp3-mediarecorder header](https://user-images.githubusercontent.com/8850410/72911851-0ab1a300-3d3b-11ea-89f7-836031608d89.png)
 
 # 🎙 mp3-mediarecorder
 
@@ -15,7 +15,7 @@ View the [live demo](https://eliasmei.re/mp3-mediarecorder)
 -   Consistent MP3 file output in all supported browsers
 -   High quality type definitions
 -   3kB main library
--   80kB Worker with wasm module (Loaded async)
+-   80kB Web Worker with WebAssembly module (Loaded async)
 
 ## Browser Support
 
@@ -29,7 +29,7 @@ View the [live demo](https://eliasmei.re/mp3-mediarecorder)
 Install with npm or yarn.
 
 ```shell
-npm i mp3-mediarecorder
+yarn add mp3-mediarecorder
 ```
 
 If you don't want to set up a build environment, you can get mp3-mediarecorder from a CDN like unpkg.com and it will be globally available through the window.mp3MediaRecorder object.
@@ -38,20 +38,36 @@ If you don't want to set up a build environment, you can get mp3-mediarecorder f
 <script src="https://unpkg.com/mp3-mediarecorder"></script>
 ```
 
+See [this example](examples/basic) for more information.
+
 ## Usage
 
-```js
-import { getMp3MediaRecorder } from 'mp3-mediarecorder';
+💡 For more detailed API docs, check out [MediaRecorder on MDN](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder)
 
-getMp3MediaRecorder({ wasmURL: '/dist/vmsg.wasm' }).then(Mp3MediaRecorder => {
-    const recorder = new Mp3MediaRecorder(mediaStream);
-    recorder.start();
-});
+We'll have two files: `index.js` and `worker.js`. The first is what we import from our app, so it runs on the main thread — it imports our worker (using worker-loader or workerize-loader) and passes it to `Mp3MediaRecorder` to create a recorder instance around it.
+
+### index.js:
+
+```ts
+import { Mp3MediaRecorder } from 'mp3-mediarecorder';
+import Mp3RecorderWorker from 'workerize-loader!./worker';
 ```
 
-getMp3MediaRecorder returns a `Promise<typeof MediaRecorder>`. The promise will resolve once the Web Assembly module is initialized and the library is ready to start recording.
+### worker.js:
 
-💡 For more detailed API docs, check out [MediaRecorder on MDN](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder)
+```
+import createStore from 'stockroom/worker'
+
+let store = createStore({
+count: 0
+})
+
+store.registerActions( store => ({
+increment: ({ count }) => ({ count: count+1 })
+}) )
+```
+
+The second file is our worker code, which runs in the background thread. Here we import Stockroom's worker-side "other half", stockroom/worker. This function returns a store instance just like createStore() does in Unistore, but sets things up to synchronize with the main/parent thread. It also adds a registerActions method to the store, which you can use to define globally-available actions for that store. These actions can be triggered from the main thread by invoking store.action('theActionName') and calling the function it returns.
 
 ## Why
 

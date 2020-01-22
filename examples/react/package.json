@@ -6,6 +6,7 @@
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
+    "classcat": "^4.0.2",
     "mp3-mediarecorder": "^3.4.7",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",

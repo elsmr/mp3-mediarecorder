@@ -61,6 +61,7 @@ typings/
 dist
 worker
 test
+build
 
 # rollup
 .rpt2_cache

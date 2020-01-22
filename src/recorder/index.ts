@@ -118,12 +118,9 @@ export class Mp3MediaRecorder extends EventTarget {
             }
             case PostMessageType.ERROR: {
                 const error = new Error(message.error) as DOMException;
-                const fallbackEvent = new Event('error');
-                (fallbackEvent as any).error = error;
-                const event = window.MediaRecorderErrorEvent
-                    ? new MediaRecorderErrorEvent('error', { error })
-                    : fallbackEvent;
-                this.dispatchEvent(event);
+                const errEvent = new Event('error');
+                (errEvent as any).error = error;
+                this.dispatchEvent(errEvent);
                 this.state = 'inactive';
                 break;
             }

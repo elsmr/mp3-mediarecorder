@@ -22,7 +22,7 @@
     "format:write": "prettier --write **/*.{ts,js,yml,json,md}",
     "format:check": "prettier -l **/*.{ts,js,yml,json,md}",
     "tsc": "tsc --noEmit",
-    "build": "del dist worker && rollup -c rollup.config.ts && cpy dist/worker/* worker &&  del dist/worker",
+    "build": "del dist worker && rollup -c rollup.config.ts && cpy node_modules/vmsg/vmsg.wasm dist && cpy dist/worker/* worker && del dist/worker",
     "bundlesize": "bundlesize",
     "dev": "serve ."
   },

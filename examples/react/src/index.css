@@ -1,0 +1,13 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: white;
+    min-height: 100vh;
+    padding: 1rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+html {
+    box-sizing: border-box;
+}

@@ -1,11 +1,7 @@
-export interface GlobalConfig {
-    wasmURL: string;
+export interface Mp3WorkerConfig {
+    vmsgWasmUrl: string;
 }
 
-export interface WorkerConfig {
+export interface Mp3WorkerEncodingConfig {
     sampleRate: number;
-}
-
-export interface Mp3MediaRecorderOptions extends MediaRecorderOptions {
-    audioContext?: AudioContext;
 }

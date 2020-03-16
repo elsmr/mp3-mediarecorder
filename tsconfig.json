@@ -10,9 +10,11 @@
         "allowSyntheticDefaultImports": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        "declarationDir": "dist/types",
+        "declarationDir": "dist",
         "outDir": "dist/lib",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "declarationMap": true
     },
-    "include": ["src"]
+    "include": ["src/*.ts"],
+    "exclude": ["**/*.test.ts"]
 }

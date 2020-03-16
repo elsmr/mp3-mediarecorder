@@ -1,17 +1,10 @@
-import { WorkerConfig } from './types/config.type';
-import { WorkerPostMessage } from './types/post-message.type';
-
-// TODO: remove me when TypeScript 3.7 is released
-interface WebAssemblyNext {
-    instantiateStreaming(
-        request: Response | Promise<Response>,
-        importObject?: any
-    ): Promise<WebAssembly.WebAssemblyInstantiatedSource>;
-}
+import { Mp3WorkerConfig, Mp3WorkerEncodingConfig } from '../types/config.type';
+import { WorkerPostMessage } from '../types/post-message.type';
 
 interface WorkerGlobalScope {
     onmessage: (message: MessageEvent) => void;
     postMessage: (message: any) => void;
+    addEventListener: (event: string, handler: Function) => void;
 }
 
 interface VmsgWasm {
@@ -21,7 +14,9 @@ interface VmsgWasm {
     vmsg_flush: (ref: number) => number;
 }
 
-export const mp3EncoderWorker = () => {
+type WebAssemblyImports = Record<string, Record<string, WebAssembly.ImportValue>>;
+
+export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
     // from vmsg
     // Must be in sync with emcc settings!
     const TOTAL_STACK = 5 * 1024 * 1024;
@@ -40,25 +35,26 @@ export const mp3EncoderWorker = () => {
 
     const getWasmModuleFallback = (
         url: string,
-        imports: object
+        imports: WebAssemblyImports
     ): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
         return fetch(url)
             .then(response => response.arrayBuffer())
             .then(buffer => WebAssembly.instantiate(buffer, imports));
     };
 
-    const getWasmModule = (url: string, imports: object): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
-        if (!((WebAssembly as unknown) as WebAssemblyNext).instantiateStreaming) {
+    const getWasmModule = (
+        url: string,
+        imports: WebAssemblyImports
+    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
+        if (!WebAssembly.instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }
 
-        return ((WebAssembly as unknown) as WebAssemblyNext)
-            .instantiateStreaming(fetch(url), imports)
-            .catch(() => getWasmModuleFallback(url, imports));
+        return WebAssembly.instantiateStreaming(fetch(url), imports).catch(() => getWasmModuleFallback(url, imports));
     };
 
-    const getVmsgImports = (): Record<string, any> => {
-        const onExit = (err: any) => {
+    const getVmsgImports = (): WebAssemblyImports => {
+        const onExit = () => {
             ctx.postMessage({ type: 'ERROR', error: 'internal' });
         };
 
@@ -84,7 +80,7 @@ export const mp3EncoderWorker = () => {
         return { env };
     };
 
-    const onStartRecording = (config: WorkerConfig): void => {
+    const onStartRecording = (config: Mp3WorkerEncodingConfig): void => {
         isRecording = true;
         vmsgRef = vmsg.vmsg_init(config.sampleRate);
         if (!vmsgRef || !vmsg) {
@@ -119,33 +115,19 @@ export const mp3EncoderWorker = () => {
         }
     };
 
-    ctx.onmessage = event => {
+    ctx.addEventListener('message', (event: MessageEvent) => {
         const message: WorkerPostMessage = event.data;
         try {
             switch (message.type) {
-                case 'INIT_WORKER': {
-                    const imports = getVmsgImports();
-                    getWasmModule(message.wasmURL, imports)
-                        .then(wasm => {
-                            vmsg = wasm.instance.exports;
-                            ctx.postMessage({ type: 'WORKER_READY' });
-                        })
-                        .catch(err => {
-                            ctx.postMessage({ type: 'ERROR', error: err.message });
-                        });
-                    break;
-                }
                 case 'START_RECORDING': {
                     onStartRecording(message.config);
                     ctx.postMessage({ type: 'WORKER_RECORDING' });
                     break;
                 }
-
                 case 'DATA_AVAILABLE': {
                     onDataReceived(message.data);
                     break;
                 }
-
                 case 'STOP_RECORDING': {
                     const blob = onStopRecording();
                     ctx.postMessage({ type: 'BLOB_READY', blob });
@@ -155,5 +137,9 @@ export const mp3EncoderWorker = () => {
         } catch (err) {
             ctx.postMessage({ type: 'ERROR', error: err.message });
         }
-    };
+    });
+    const imports = getVmsgImports();
+    getWasmModule(vmsgWasmUrl, imports).then(wasm => {
+        vmsg = (wasm.instance.exports as unknown) as VmsgWasm;
+    });
 };

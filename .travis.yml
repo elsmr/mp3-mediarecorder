@@ -36,7 +36,7 @@ jobs:
               skip-cleanup: true
               github-token: $GITHUB_TOKEN
               keep-history: true
-              local-dir: demo
+              local-dir: examples/basic
               on:
                   branch: master
         - stage: release

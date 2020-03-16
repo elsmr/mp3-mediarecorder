@@ -57,9 +57,15 @@ typings/
 # dotenv environment variables file
 .env
 
-# next.js build output
-.next
-
-.rpt2_cache
-
+# build output
 dist
+/worker
+test
+build
+
+# rollup
+.rpt2_cache
+.rts2_cache_*
+
+# editors
+.vscode

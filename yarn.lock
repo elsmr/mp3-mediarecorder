@@ -1801,7 +1801,7 @@ cp-file@^7.0.0:
     nested-error-stacks "^2.0.0"
     p-event "^4.1.0"
 
-cpy-cli@^3.0.0:
+cpy-cli@3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/cpy-cli/-/cpy-cli-3.0.0.tgz#429eb6a5ee2d4805bfe454d9d86a3eb72df20e26"
   integrity sha512-fxNNpGrnuVMbaDBpHdgwReMy48BelhAoS6OUUX6Zv5nMwSPZOMxL/kB5VxM9xQoB1vvw38zG9drLRS8gvavxeg==
@@ -2017,7 +2017,7 @@ define-property@^2.0.2:
     is-descriptor "^1.0.2"
     isobject "^3.0.1"
 
-del-cli@^3.0.0:
+del-cli@3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/del-cli/-/del-cli-3.0.0.tgz#327a15d4c18d6b7e5c849a53ef0d17901bc28197"
   integrity sha512-J4HDC2mpcN5aopya4VdkyiFXZaqAoo7ua9VpKbciX3DDUSbtJbPMc3ivggJsAAgS6EqonmbenIiMhBGtJPW9FA==

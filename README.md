@@ -96,7 +96,7 @@ const recorder = new Mp3MediaRecorder(
     {
         worker: Mp3RecorderWorker(),
         // Optionally supply your own AudioContext
-        audioContext: new AudioContext()
+        audioContext: new AudioContext(),
     }
 );
 ```

@@ -21,12 +21,12 @@ if (isBrowserSupported) {
         navigator.mediaDevices
             .getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
             .then(
-                stream => {
+                (stream) => {
                     mediaStream = stream;
                     recorder = new window.mp3MediaRecorder.Mp3MediaRecorder(stream, { worker });
                     recorder.start();
 
-                    recorder.onstart = e => {
+                    recorder.onstart = (e) => {
                         console.log('onstart', e);
                         blobs = [];
                         startButton.classList.add('is-disabled');
@@ -34,14 +34,14 @@ if (isBrowserSupported) {
                         pauseButton.classList.remove('is-disabled');
                     };
 
-                    recorder.ondataavailable = e => {
+                    recorder.ondataavailable = (e) => {
                         console.log('ondataavailable', e);
                         blobs.push(e.data);
                     };
 
-                    recorder.onstop = e => {
+                    recorder.onstop = (e) => {
                         console.log('onstop', e);
-                        mediaStream.getTracks().forEach(track => track.stop());
+                        mediaStream.getTracks().forEach((track) => track.stop());
 
                         startButton.classList.remove('is-disabled');
                         pauseButton.classList.add('is-disabled');
@@ -55,23 +55,23 @@ if (isBrowserSupported) {
                         recordings.appendChild(audio);
                     };
 
-                    recorder.onpause = e => {
+                    recorder.onpause = (e) => {
                         console.log('onpause', e);
                         resumeButton.classList.remove('is-disabled');
                         pauseButton.classList.add('is-disabled');
                     };
 
-                    recorder.onresume = e => {
+                    recorder.onresume = (e) => {
                         console.log('onresume', e);
                         resumeButton.classList.add('is-disabled');
                         pauseButton.classList.remove('is-disabled');
                     };
 
-                    recorder.onerror = e => {
+                    recorder.onerror = (e) => {
                         console.error('onerror', e);
                     };
                 },
-                reason => {
+                (reason) => {
                     console.warn('Could not get microphone access.\nError:', reason.message);
                 }
             );
@@ -89,7 +89,7 @@ if (isBrowserSupported) {
         recorder.resume();
     });
 } else {
-    const renderError = reason => {
+    const renderError = (reason) => {
         const clonedMain = main.cloneNode(false);
         clonedMain.innerHTML = `
             <h1 class="nes-text is-error">MP3 MediaRecorder is not supported</h1>

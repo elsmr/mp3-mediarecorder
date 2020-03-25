@@ -9,7 +9,7 @@ const pluginsWithTranspile = [...basePlugins, buble()];
 const baseOutputOptions = {
     compact: true,
     interop: false,
-    sourcemap: true
+    sourcemap: true,
 };
 
 export default [
@@ -21,10 +21,10 @@ export default [
                 file: pkg.es2015,
                 format: 'es',
 
-                sourcemap: true
-            }
+                sourcemap: true,
+            },
         ],
-        plugins: basePlugins
+        plugins: basePlugins,
     },
     {
         input: 'src/index.ts',
@@ -32,21 +32,21 @@ export default [
             {
                 ...baseOutputOptions,
                 file: pkg.module,
-                format: 'es'
+                format: 'es',
             },
             {
                 ...baseOutputOptions,
                 file: pkg.main,
-                format: 'cjs'
+                format: 'cjs',
             },
             {
                 ...baseOutputOptions,
                 file: pkg.browser,
                 format: 'umd',
-                name: 'mp3MediaRecorder'
-            }
+                name: 'mp3MediaRecorder',
+            },
         ],
-        plugins: pluginsWithTranspile
+        plugins: pluginsWithTranspile,
     },
     {
         input: 'src/worker/index.ts',
@@ -54,10 +54,10 @@ export default [
             {
                 ...baseOutputOptions,
                 file: 'dist/worker/index.es.js',
-                format: 'es'
-            }
+                format: 'es',
+            },
         ],
-        plugins: basePlugins
+        plugins: basePlugins,
     },
     {
         input: 'src/worker/index.ts',
@@ -65,20 +65,20 @@ export default [
             {
                 ...baseOutputOptions,
                 file: 'dist/worker/index.es5.js',
-                format: 'es'
+                format: 'es',
             },
             {
                 ...baseOutputOptions,
                 file: 'dist/worker/index.js',
-                format: 'cjs'
+                format: 'cjs',
             },
             {
                 ...baseOutputOptions,
                 file: 'dist/worker/index.umd.js',
                 format: 'umd',
-                name: 'mp3EncoderWorker'
-            }
+                name: 'mp3EncoderWorker',
+            },
         ],
-        plugins: pluginsWithTranspile
-    }
+        plugins: pluginsWithTranspile,
+    },
 ];

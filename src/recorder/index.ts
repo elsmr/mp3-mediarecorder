@@ -4,7 +4,7 @@ import {
     PostMessageType,
     startRecordingMessage,
     stopRecordingMessage,
-    WorkerPostMessage
+    WorkerPostMessage,
 } from '../types/post-message.type';
 
 export interface Mp3MediaRecorderOptions extends MediaRecorderOptions {
@@ -55,7 +55,7 @@ export class Mp3MediaRecorder extends EventTarget {
         if (this.state !== 'inactive') {
             throw this.getStateError('start');
         }
-        this.processorNode.onaudioprocess = event => {
+        this.processorNode.onaudioprocess = (event) => {
             this.worker.postMessage(dataAvailableMessage(event.inputBuffer.getChannelData(0)));
         };
         this.processorNode.connect(this.audioContext.destination);
@@ -132,7 +132,7 @@ export class Mp3MediaRecorder extends EventTarget {
                 const dataEvent = window.BlobEvent
                     ? new BlobEvent('dataavailable', {
                           data: message.blob,
-                          timecode: Date.now()
+                          timecode: Date.now(),
                       })
                     : fallbackDataEvent;
                 this.dispatchEvent(dataEvent);

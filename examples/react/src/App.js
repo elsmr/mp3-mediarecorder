@@ -15,12 +15,12 @@ function App() {
     }, []);
 
     const onRecord = () => {
-        window.navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        window.navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
             const recorder = new Mp3MediaRecorder(stream, { worker: worker.current });
             recorderRef.current = recorder;
-            recorder.ondataavailable = event => {
+            recorder.ondataavailable = (event) => {
                 console.log('ondataavailable', event.data);
-                setRecordings(prevRecordings => [...prevRecordings, URL.createObjectURL(event.data)]);
+                setRecordings((prevRecordings) => [...prevRecordings, URL.createObjectURL(event.data)]);
             };
             recorder.onstart = () => {
                 console.log('onstart');
@@ -60,7 +60,7 @@ function App() {
             <h1>MP3 MediaRecorder</h1>
             <section className="recordings nes-container with-title">
                 <h2 className="title">Recordings</h2>
-                {recordings.map(recording => (
+                {recordings.map((recording) => (
                     <audio key={recording} controls src={recording}></audio>
                 ))}
             </section>

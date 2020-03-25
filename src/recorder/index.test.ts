@@ -17,12 +17,12 @@ describe('mp3-mediarecorder', () => {
         sourceNode = { connect: jest.fn() } as any;
         gainNode = {
             connect: jest.fn(),
-            gain: { value: 0 }
+            gain: { value: 0 },
         } as any;
         processorNode = {
             connect: jest.fn(),
             disconnect: jest.fn(),
-            onaudioprocess: jest.fn()
+            onaudioprocess: jest.fn(),
         } as any;
         workerPostMessage = jest.fn();
         audioContext = {
@@ -31,7 +31,7 @@ describe('mp3-mediarecorder', () => {
             suspend: jest.fn(() => Promise.resolve()),
             createMediaStreamSource: jest.fn(() => sourceNode),
             createGain: jest.fn(() => gainNode),
-            createScriptProcessor: jest.fn(() => processorNode)
+            createScriptProcessor: jest.fn(() => processorNode),
         } as any;
         worker = {
             postMessage: workerPostMessage,
@@ -46,19 +46,19 @@ describe('mp3-mediarecorder', () => {
                 }
             }),
             removeEventListener: jest.fn((event, listener) => {
-                const index = workerPostMessageListeners[event].findIndex(l => l === listener);
+                const index = workerPostMessageListeners[event].findIndex((l) => l === listener);
                 if (index > -1) {
                     workerPostMessageListeners[event].splice(index);
                 }
             }),
             dispatchEvent: jest.fn((event: Event) => {
                 try {
-                    workerPostMessageListeners[event.type].forEach(l => l(event));
+                    workerPostMessageListeners[event.type].forEach((l) => l(event));
                     return true;
                 } catch (e) {
                     return false;
                 }
-            })
+            }),
         };
         window.Worker = jest.fn(() => worker);
         Object.setPrototypeOf(worker, window.Worker);
@@ -94,9 +94,9 @@ describe('mp3-mediarecorder', () => {
             expect(recorder.state).toBe('recording');
         });
 
-        it('should emit a start event', async done => {
+        it('should emit a start event', async (done) => {
             const recorder = instantiateRecorder();
-            recorder.addEventListener('start', event => {
+            recorder.addEventListener('start', (event) => {
                 expect(event.type).toEqual('start');
                 done();
             });
@@ -122,7 +122,7 @@ describe('mp3-mediarecorder', () => {
             worker.onmessage({ data: workerRecordingMessage() });
         });
 
-        it('should set the recorder state to "paused"', async done => {
+        it('should set the recorder state to "paused"', async (done) => {
             recorder.addEventListener('pause', () => {
                 expect(recorder.state).toBe('paused');
                 done();
@@ -130,8 +130,8 @@ describe('mp3-mediarecorder', () => {
             recorder.pause();
         });
 
-        it('should emit a pause event', async done => {
-            recorder.addEventListener('pause', event => {
+        it('should emit a pause event', async (done) => {
+            recorder.addEventListener('pause', (event) => {
                 expect(event.type).toEqual('pause');
                 done();
             });
@@ -156,7 +156,7 @@ describe('mp3-mediarecorder', () => {
             recorder.pause();
         });
 
-        it('should set the recorder state to "recording"', async done => {
+        it('should set the recorder state to "recording"', async (done) => {
             expect(recorder.state).toBe('paused');
             recorder.addEventListener('resume', () => {
                 expect(recorder.state).toBe('recording');
@@ -165,8 +165,8 @@ describe('mp3-mediarecorder', () => {
             recorder.resume();
         });
 
-        it('should emit a resume event', async done => {
-            recorder.addEventListener('resume', event => {
+        it('should emit a resume event', async (done) => {
+            recorder.addEventListener('resume', (event) => {
                 expect(event.type).toEqual('resume');
                 done();
             });
@@ -203,8 +203,8 @@ describe('mp3-mediarecorder', () => {
             expect(processorNode.disconnect).toHaveBeenCalled();
         });
 
-        it('should emit a stop event', async done => {
-            recorder.addEventListener('stop', event => {
+        it('should emit a stop event', async (done) => {
+            recorder.addEventListener('stop', (event) => {
                 expect(event.type).toEqual('stop');
                 done();
             });
@@ -229,8 +229,8 @@ describe('mp3-mediarecorder', () => {
             recorder = instantiateRecorder();
         });
 
-        it('should emit a dataavailable event when the worker has recorded', async done => {
-            recorder.ondataavailable = event => {
+        it('should emit a dataavailable event when the worker has recorded', async (done) => {
+            recorder.ondataavailable = (event) => {
                 const { data, type } = event;
                 expect(type).toEqual('dataavailable');
                 expect(data).toEqual(recording);

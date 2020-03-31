@@ -1,7 +1,10 @@
 {
-    "extends": ["config:base"],
-    "prConcurrentLimit": 10,
-    "patch": {
-        "automerge": true
+  "extends": ["config:base"],
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "updateTypes": ["patch", "pin", "digest"],
+      "automerge": true
     }
+  ]
 }

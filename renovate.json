@@ -1,9 +1,20 @@
 {
     "extends": ["config:base"],
     "prConcurrentLimit": 5,
+    "prCreation": "not-pending",
+    "stabilityDays": 14,
+    "masterIssue": true,
+    "patch": {
+        "automerge": true
+    },
     "packageRules": [
         {
-            "updateTypes": ["patch", "pin", "digest"],
+            "depTypeList": ["devDependencies"],
+            "automerge": true
+        },
+        {
+            "packageNames": ["jest", "ts-jest"],
+            "groupName": "Jest",
             "automerge": true
         }
     ]

@@ -58,7 +58,7 @@
     "bundlesize": "0.18.0",
     "cpy-cli": "3.1.0",
     "del-cli": "3.0.0",
-    "jest": "25.2.3",
+    "jest": "25.2.4",
     "prettier": "2.0.2",
     "rollup": "2.3.2",
     "@rollup/plugin-buble": "0.21.1",

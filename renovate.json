@@ -10,11 +10,7 @@
     "packageRules": [
         {
             "depTypeList": ["devDependencies"],
-            "automerge": true
-        },
-        {
-            "packageNames": ["jest", "ts-jest"],
-            "groupName": "Jest",
+            "groupName": "devDependencies",
             "automerge": true
         }
     ]

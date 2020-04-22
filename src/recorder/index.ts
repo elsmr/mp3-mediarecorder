@@ -30,6 +30,7 @@ export class Mp3MediaRecorder extends EventTarget {
     private gainNode: GainNode;
     private processorNode: ScriptProcessorNode;
     private worker: Worker;
+    private isInternalAudioContext = false;
 
     static isTypeSupported = (mimeType: string) => mimeType === MP3_MIME_TYPE;
 
@@ -40,6 +41,7 @@ export class Mp3MediaRecorder extends EventTarget {
             throw new Error('No worker provided in Mp3MediaRecorder constructor.');
         }
         this.stream = stream;
+        this.isInternalAudioContext = !audioContext;
         this.audioContext = audioContext || new SafeAudioContext();
         this.worker = worker;
         this.sourceNode = this.audioContext.createMediaStreamSource(stream);
@@ -72,7 +74,9 @@ export class Mp3MediaRecorder extends EventTarget {
             throw this.getStateError('stop');
         }
         this.processorNode.disconnect();
-        this.audioContext.close();
+        if (this.isInternalAudioContext) {
+            this.audioContext.close();
+        }
         this.worker.postMessage(stopRecordingMessage());
     }
 

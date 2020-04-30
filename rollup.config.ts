@@ -1,11 +1,10 @@
-import buble from '@rollup/plugin-buble';
+import babel from '@rollup/plugin-babel';
 import resolve from '@rollup/plugin-node-resolve';
-import sourceMaps from 'rollup-plugin-sourcemaps';
-import ts from 'rollup-plugin-typescript2';
+import typescript from 'rollup-plugin-typescript2';
 
 const pkg = require('./package.json');
-const basePlugins = [ts({ useTsconfigDeclarationDir: true, clean: true }), resolve(), sourceMaps()];
-const pluginsWithTranspile = [...basePlugins, buble()];
+const basePlugins = [typescript({ useTsconfigDeclarationDir: true, clean: true }), resolve()];
+const pluginsWithTranspile = [...basePlugins, babel()];
 const baseOutputOptions = {
     compact: true,
     interop: false,
@@ -20,7 +19,6 @@ export default [
                 ...baseOutputOptions,
                 file: pkg.es2015,
                 format: 'es',
-
                 sourcemap: true,
             },
         ],

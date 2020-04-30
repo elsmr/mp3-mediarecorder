@@ -51,6 +51,10 @@
   },
   "homepage": "https://github.com/eliasmeire/mp3-mediarecorder#readme",
   "devDependencies": {
+    "@babel/core": "7.9.6",
+    "@babel/preset-env": "7.9.6",
+    "@rollup/plugin-babel": "5.0.0",
+    "@rollup/plugin-node-resolve": "7.1.3",
     "@semantic-release/git": "9.0.0",
     "@types/dom-mediacapture-record": "1.0.4",
     "@types/jest": "25.2.1",
@@ -60,14 +64,12 @@
     "del-cli": "3.0.0",
     "jest": "25.4.0",
     "prettier": "2.0.5",
-    "rollup": "2.7.1",
-    "@rollup/plugin-buble": "0.21.3",
-    "@rollup/plugin-node-resolve": "7.1.3",
-    "rollup-plugin-sourcemaps": "0.5.0",
+    "rollup": "2.7.5",
     "rollup-plugin-typescript2": "0.27.0",
     "semantic-release": "17.0.7",
     "serve": "11.3.0",
     "ts-jest": "25.4.0",
+    "tslib": "1.11.1",
     "typescript": "3.8.3"
   },
   "dependencies": {
@@ -83,6 +85,12 @@
       "@semantic-release/git"
     ]
   },
+  "browserslist": [
+    "Firefox >= 52",
+    "Chrome >= 57",
+    "Edge >= 16",
+    "Safari >= 11"
+  ],
   "bundlesize": [
     {
       "path": "dist/index.umd.js",

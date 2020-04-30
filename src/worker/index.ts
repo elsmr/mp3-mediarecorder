@@ -28,24 +28,42 @@ export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
         maximum: TOTAL_MEMORY / WASM_PAGE_SIZE
     });
     let dynamicTop = TOTAL_STACK;
-    let vmsg: VmsgWasm;
+    let imports: WebAssemblyImports = { env : {
+        memory,
+        sbrk: (increment: number): number => {
+            const oldDynamicTop = dynamicTop;
+            dynamicTop += increment;
+            return oldDynamicTop;
+        },
+        exit: () => ctx.postMessage({ type: 'ERROR', error: 'internal' }),
+        pow: Math.pow,
+        powf: Math.pow,
+        exp: Math.exp,
+        sqrtf: Math.sqrt,
+        cos: Math.cos,
+        log: Math.log,
+        sin: Math.sin
+    } }
+    const vmsg: Promise<VmsgWasm> = getWasmModule(vmsgWasmUrl, imports).then(wasm =>
+        (wasm.instance.exports as unknown) as VmsgWasm
+    );
     let isRecording = false;
     let vmsgRef: number;
     let pcmLeft: Float32Array;
 
-    const getWasmModuleFallback = (
+    function getWasmModuleFallback (
         url: string,
         imports: WebAssemblyImports
-    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
+    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
         return fetch(url)
             .then(response => response.arrayBuffer())
             .then(buffer => WebAssembly.instantiate(buffer, imports));
     };
 
-    const getWasmModule = (
+    function getWasmModule (
         url: string,
         imports: WebAssemblyImports
-    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> => {
+    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
         if (!WebAssembly.instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }
@@ -53,83 +71,59 @@ export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
         return WebAssembly.instantiateStreaming(fetch(url), imports).catch(() => getWasmModuleFallback(url, imports));
     };
 
-    const getVmsgImports = (): WebAssemblyImports => {
-        const onExit = () => {
-            ctx.postMessage({ type: 'ERROR', error: 'internal' });
-        };
-
-        const sbrk = (increment: number): number => {
-            const oldDynamicTop = dynamicTop;
-            dynamicTop += increment;
-            return oldDynamicTop;
-        };
-
-        const env = {
-            memory,
-            sbrk,
-            exit: onExit,
-            pow: Math.pow,
-            powf: Math.pow,
-            exp: Math.exp,
-            sqrtf: Math.sqrt,
-            cos: Math.cos,
-            log: Math.log,
-            sin: Math.sin
-        };
-
-        return { env };
-    };
-
-    const onStartRecording = (config: Mp3WorkerEncodingConfig): void => {
+    const onStartRecording = async (config: Mp3WorkerEncodingConfig): Promise<void> => {
+        const vmsgInstance = await vmsg;
         isRecording = true;
-        vmsgRef = vmsg.vmsg_init(config.sampleRate);
-        if (!vmsgRef || !vmsg) {
+        vmsgRef = vmsgInstance.vmsg_init(config.sampleRate);
+        if (!vmsgRef || !vmsgInstance) {
             throw new Error('init_failed');
         }
         const pcmLeftRef = new Uint32Array(memory.buffer, vmsgRef, 1)[0];
         pcmLeft = new Float32Array(memory.buffer, pcmLeftRef);
     };
 
-    const onStopRecording = (): Blob => {
+    const onStopRecording = async (): Promise<Blob> => {
+        const vmsgInstance = await vmsg;
         isRecording = false;
-        if (vmsg.vmsg_flush(vmsgRef) < 0) {
+        if (vmsgInstance.vmsg_flush(vmsgRef) < 0) {
             throw new Error('flush_failed');
         }
         const mp3BytesRef = new Uint32Array(memory.buffer, vmsgRef + 4, 1)[0];
         const size = new Uint32Array(memory.buffer, vmsgRef + 8, 1)[0];
         const mp3Bytes = new Uint8Array(memory.buffer, mp3BytesRef, size);
         const blob = new Blob([mp3Bytes], { type: 'audio/mpeg' });
-        vmsg.vmsg_free(vmsgRef);
+        vmsgInstance.vmsg_free(vmsgRef);
         return blob;
     };
 
-    const onDataReceived = (data: ArrayLike<number>): void => {
+    const onDataReceived = async (data: ArrayLike<number>): Promise<void> => {
         if (!isRecording) {
             return;
         }
 
         pcmLeft.set(data);
-        const encodedBytesAmount = vmsg.vmsg_encode(vmsgRef, data.length);
+        const vmsgInstance = await vmsg;
+        const encodedBytesAmount = vmsgInstance.vmsg_encode(vmsgRef, data.length);
         if (encodedBytesAmount < 0) {
             throw new Error('encoding_failed');
         }
     };
 
-    ctx.addEventListener('message', (event: MessageEvent) => {
+    ctx.addEventListener('message', async (event: MessageEvent) => {
         const message: WorkerPostMessage = event.data;
         try {
             switch (message.type) {
                 case 'START_RECORDING': {
-                    onStartRecording(message.config);
+                    await onStartRecording(message.config);
                     ctx.postMessage({ type: 'WORKER_RECORDING' });
                     break;
                 }
                 case 'DATA_AVAILABLE': {
-                    onDataReceived(message.data);
+                    await onDataReceived(message.data);
                     break;
                 }
                 case 'STOP_RECORDING': {
-                    const blob = onStopRecording();
+                    const blob = await onStopRecording();
                     ctx.postMessage({ type: 'BLOB_READY', blob });
                     break;
                 }
@@ -137,9 +131,5 @@ export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
         } catch (err) {
             ctx.postMessage({ type: 'ERROR', error: err.message });
         }
-    });
-    const imports = getVmsgImports();
-    getWasmModule(vmsgWasmUrl, imports).then(wasm => {
-        vmsg = (wasm.instance.exports as unknown) as VmsgWasm;
     });
 };

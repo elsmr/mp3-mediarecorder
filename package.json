@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eliasmeire/mp3-mediarecorder.git"
+    "url": "git+https://github.com/elsmr/mp3-mediarecorder.git"
   },
   "keywords": [
     "mediarecorder",
@@ -47,9 +47,9 @@
   "author": "Elias Meire",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/eliasmeire/mp3-mediarecorder/issues"
+    "url": "https://github.com/elsmr/mp3-mediarecorder/issues"
   },
-  "homepage": "https://github.com/eliasmeire/mp3-mediarecorder#readme",
+  "homepage": "https://github.com/elsmr/mp3-mediarecorder#readme",
   "devDependencies": {
     "@babel/core": "7.9.6",
     "@babel/preset-env": "7.9.6",

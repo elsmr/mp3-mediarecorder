@@ -130,7 +130,8 @@ Even in browsers with support for MediaRecorder, the available audio formats dif
 
 ## Limitations
 
--   The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument. As a result,`MediaRecorder.requestData` does not trigger a `dataavailable` event
+-    In Safari, pause and resume does not work (see [#60](https://github.com/elsmr/mp3-mediarecorder/issues/60))
+-    The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument. As a result,`MediaRecorder.requestData` does not trigger a `dataavailable` event
 -   `bitsPerSecond` is not configurable, the `MediaRecorder` constructor will ignore this option.
 
 ## Develop

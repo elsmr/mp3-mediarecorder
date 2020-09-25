@@ -38,8 +38,6 @@ If you don't want to set up a build environment, you can get mp3-mediarecorder f
 <script src="https://unpkg.com/mp3-mediarecorder"></script>
 ```
 
-See [this example](examples/basic) for more information.
-
 ## Usage
 
 We'll have two files: `index.js` and `worker.js`. The first is what we import from our app, so it runs on the main thread — it imports our worker (using worker-loader or workerize-loader) and passes it to `Mp3MediaRecorder` to create a recorder instance around it.
@@ -134,6 +132,14 @@ Even in browsers with support for MediaRecorder, the available audio formats dif
 
 -   The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument. As a result,`MediaRecorder.requestData` does not trigger a `dataavailable` event
 -   `bitsPerSecond` is not configurable, the `MediaRecorder` constructor will ignore this option.
+
+## Develop
+
+```
+yarn dev
+```
+
+A development version of the demo will be served on http://localhost:1234.
 
 ## Related
 

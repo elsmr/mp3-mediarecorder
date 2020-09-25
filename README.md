@@ -2,7 +2,7 @@
 
 # 🎙 mp3-mediarecorder
 
-[![Build Status](https://travis-ci.com/eliasmeire/mp3-mediarecorder.svg?branch=master)](https://travis-ci.com/eliasmeire/mp3-mediarecorder) [![NPM Version](https://badge.fury.io/js/mp3-mediarecorder.svg?style=flat)](https://npmjs.org/package/mp3-mediarecorder) [![Live demo](https://img.shields.io/badge/live%20demo-available-blue.svg)](https://elsmr.github.io/mp3-mediarecorder)
+[![Build Status](https://travis-ci.com/elsmr/mp3-mediarecorder.svg?branch=master)](https://travis-ci.com/elsmr/mp3-mediarecorder) [![NPM Version](https://badge.fury.io/js/mp3-mediarecorder.svg?style=flat)](https://npmjs.org/package/mp3-mediarecorder) [![Live demo](https://img.shields.io/badge/live%20demo-available-blue.svg)](https://elsmr.github.io/mp3-mediarecorder)
 
 A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) [ponyfill](https://ponyfill.com) that records audio as mp3. It uses the great [Kagami/vmsg](https://github.com/Kagami/vmsg) library under the hood to encode mp3 audio in WebAssembly using [LAME](http://lame.sourceforge.net/).
 
@@ -55,7 +55,7 @@ const recorder = new Mp3MediaRecorder(
 recorder.start(); // 🎉
 ```
 
-In most cases the MediaStream instance will come from the [getUserMedia API](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia). For a usage example, see [here](https://github.com/eliasmeire/mp3-mediarecorder/blob/next/examples/react/src/App.js#L18-L19).
+In most cases the MediaStream instance will come from the [getUserMedia API](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia). For a usage example, see [here](https://github.com/elsmr/mp3-mediarecorder/blob/master/examples/react/src/App.js#L18-L19).
 
 ### worker.js
 
@@ -130,8 +130,8 @@ Even in browsers with support for MediaRecorder, the available audio formats dif
 
 ## Limitations
 
--    In Safari, pause and resume does not work (see [#60](https://github.com/elsmr/mp3-mediarecorder/issues/60))
--    The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument. As a result,`MediaRecorder.requestData` does not trigger a `dataavailable` event
+-   In Safari, pause and resume does not work (see [#60](https://github.com/elsmr/mp3-mediarecorder/issues/60))
+-   The `dataavailable` event only fires once, when encoding is complete. `MediaRecorder.start` ignores its optional `timeSlice` argument. As a result,`MediaRecorder.requestData` does not trigger a `dataavailable` event
 -   `bitsPerSecond` is not configurable, the `MediaRecorder` constructor will ignore this option.
 
 ## Develop

@@ -39,11 +39,10 @@ jspm_packages/
 # TypeScript v1 declaration files
 typings/
 
-# Optional npm cache directory
+# Cache
 .npm
-
-# Optional eslint cache
 .eslintcache
+.cache
 
 # Optional REPL history
 .node_repl_history
@@ -69,3 +68,5 @@ build
 
 # editors
 .vscode
+
+public

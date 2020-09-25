@@ -1,3 +1,5 @@
+import { Mp3MediaRecorder } from '../../src/recorder';
+
 const startButton = document.getElementById('record');
 const stopButton = document.getElementById('stop');
 const pauseButton = document.getElementById('pause');
@@ -5,11 +7,9 @@ const resumeButton = document.getElementById('resume');
 const recordings = document.getElementById('recordings');
 const main = document.getElementById('main');
 
-let isRecording = false;
 let recorder = null;
 let blobs = [];
 let mediaStream = null;
-let isPaused = false;
 const supportsWasm = WebAssembly && typeof WebAssembly.instantiate === 'function';
 const supportsUserMediaAPI = navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function';
 const isBrowserSupported = supportsWasm && supportsUserMediaAPI;
@@ -23,7 +23,7 @@ if (isBrowserSupported) {
             .then(
                 (stream) => {
                     mediaStream = stream;
-                    recorder = new window.mp3MediaRecorder.Mp3MediaRecorder(stream, { worker });
+                    recorder = new Mp3MediaRecorder(stream, { worker });
                     recorder.start();
 
                     recorder.onstart = (e) => {

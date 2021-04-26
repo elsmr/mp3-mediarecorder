@@ -75,7 +75,7 @@
     },
     "dependencies": {
         "event-target-shim": "github:cpmsmith/event-target-shim#sentry-infinite-recursion",
-        "vmsg": "0.3.6"
+        "vmsg": "0.4.0"
     },
     "release": {
         "plugins": [

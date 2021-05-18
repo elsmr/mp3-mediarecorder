@@ -52,30 +52,30 @@
     },
     "homepage": "https://github.com/elsmr/mp3-mediarecorder#readme",
     "devDependencies": {
-        "@babel/core": "7.12.10",
-        "@babel/preset-env": "7.12.10",
-        "@rollup/plugin-babel": "5.2.2",
-        "@rollup/plugin-node-resolve": "11.0.0",
+        "@babel/core": "7.14.3",
+        "@babel/preset-env": "7.14.2",
+        "@rollup/plugin-babel": "5.3.0",
+        "@rollup/plugin-node-resolve": "13.0.0",
         "@semantic-release/git": "9.0.0",
         "@types/dom-mediacapture-record": "1.0.7",
-        "@types/jest": "26.0.19",
-        "@types/node": "13.13.2",
-        "bundlesize": "0.18.0",
+        "@types/jest": "26.0.23",
+        "@types/node": "15.3.0",
+        "bundlesize": "0.18.1",
         "cpy-cli": "3.1.1",
         "del-cli": "3.0.1",
         "jest": "26.6.3",
-        "parcel-bundler": "1.12.4",
-        "prettier": "2.2.1",
-        "rollup": "2.35.1",
-        "rollup-plugin-typescript2": "0.29.0",
-        "semantic-release": "17.3.0",
-        "ts-jest": "26.4.4",
-        "tslib": "2.0.3",
-        "typescript": "4.1.2"
+        "parcel-bundler": "1.12.5",
+        "prettier": "2.3.0",
+        "rollup": "2.48.0",
+        "rollup-plugin-typescript2": "0.30.0",
+        "semantic-release": "17.4.3",
+        "ts-jest": "26.5.6",
+        "tslib": "2.2.0",
+        "typescript": "4.2.4"
     },
     "dependencies": {
-        "event-target-shim": "github:cpmsmith/event-target-shim#sentry-infinite-recursion",
-        "vmsg": "0.3.6"
+        "event-target-shim": "6.0.2",
+        "vmsg": "0.4.0"
     },
     "release": {
         "plugins": [
@@ -95,19 +95,19 @@
     "bundlesize": [
         {
             "path": "dist/index.umd.js",
-            "maxSize": "7kB"
+            "maxSize": "9kB"
         },
         {
             "path": "dist/index.es5.js",
-            "maxSize": "7kB"
+            "maxSize": "9kB"
         },
         {
             "path": "dist/index.es.js",
-            "maxSize": "7kB"
+            "maxSize": "9kB"
         },
         {
             "path": "dist/index.js",
-            "maxSize": "7kB"
+            "maxSize": "9kB"
         },
         {
             "path": "worker/index.umd.js",

@@ -2,11 +2,11 @@
 
 # 🎙 mp3-mediarecorder
 
-[![Build Status](https://travis-ci.com/elsmr/mp3-mediarecorder.svg?branch=master)](https://travis-ci.com/elsmr/mp3-mediarecorder) [![NPM Version](https://badge.fury.io/js/mp3-mediarecorder.svg?style=flat)](https://npmjs.org/package/mp3-mediarecorder) [![Live demo](https://img.shields.io/badge/live%20demo-available-blue.svg)](https://elsmr.github.io/mp3-mediarecorder)
+[![Build Status](https://travis-ci.com/elsmr/mp3-mediarecorder.svg?branch=master)](https://travis-ci.com/elsmr/mp3-mediarecorder) [![NPM Version](https://badge.fury.io/js/mp3-mediarecorder.svg?style=flat)](https://npmjs.org/package/mp3-mediarecorder) [![Live demo](https://img.shields.io/badge/live%20demo-available-blue.svg)](https://mp3-mediarecorder.elsmr.dev)
 
 A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) [ponyfill](https://ponyfill.com) that records audio as mp3. It uses the great [Kagami/vmsg](https://github.com/Kagami/vmsg) library under the hood to encode mp3 audio in WebAssembly using [LAME](http://lame.sourceforge.net/).
 
-View the [live demo](https://elsmr.github.io/mp3-mediarecorder)
+View the [live demo](https://mp3-mediarecorder.elsmr.dev)
 
 ## Features
 

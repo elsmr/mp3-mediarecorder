@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "classcat": "4.0.2",
-    "mp3-mediarecorder": "4.0.0",
-    "react": "16.13.0",
-    "react-dom": "16.13.0",
-    "react-scripts": "3.4.0"
+    "classcat": "5.0.3",
+    "mp3-mediarecorder": "latest",
+    "react": "17.0.2",
+    "react-dom": "17.0.2",
+    "react-scripts": "4.0.3"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "SKIP_PREFLIGHT_CHECK=true react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -31,6 +31,6 @@
     ]
   },
   "devDependencies": {
-    "workerize-loader": "1.1.0"
+    "workerize-loader": "1.3.0"
   }
 }

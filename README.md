@@ -14,7 +14,7 @@ View the [live demo](https://elsmr.github.io/mp3-mediarecorder)
 -   Audio encoding off the main thread using Web Workers
 -   Consistent MP3 file output in all supported browsers
 -   High quality type definitions
--   7kB main library
+-   9kB main library
 -   80kB Web Worker with WebAssembly module (Loaded async)
 
 ## Browser Support

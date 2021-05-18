@@ -95,19 +95,19 @@
     "bundlesize": [
         {
             "path": "dist/index.umd.js",
-            "maxSize": "7kB"
+            "maxSize": "9kB"
         },
         {
             "path": "dist/index.es5.js",
-            "maxSize": "7kB"
+            "maxSize": "9kB"
         },
         {
             "path": "dist/index.es.js",
-            "maxSize": "7kB"
+            "maxSize": "9kB"
         },
         {
             "path": "dist/index.js",
-            "maxSize": "7kB"
+            "maxSize": "9kB"
         },
         {
             "path": "worker/index.umd.js",

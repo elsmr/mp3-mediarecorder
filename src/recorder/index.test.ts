@@ -83,7 +83,7 @@ describe('mp3-mediarecorder', () => {
             expect(recorder.state).toBe('recording');
         });
 
-        it('should emit a start event', async (done) => {
+        it('should emit a start event', (done) => {
             const recorder = instantiateRecorder();
             recorder.addEventListener('start', (event) => {
                 expect(event.type).toEqual('start');
@@ -111,7 +111,7 @@ describe('mp3-mediarecorder', () => {
             worker.onmessage({ data: workerRecordingMessage() });
         });
 
-        it('should set the recorder state to "paused"', async (done) => {
+        it('should set the recorder state to "paused"', (done) => {
             recorder.addEventListener('pause', () => {
                 expect(recorder.state).toBe('paused');
                 done();
@@ -119,7 +119,7 @@ describe('mp3-mediarecorder', () => {
             recorder.pause();
         });
 
-        it('should emit a pause event', async (done) => {
+        it('should emit a pause event', (done) => {
             recorder.addEventListener('pause', (event) => {
                 expect(event.type).toEqual('pause');
                 done();
@@ -145,7 +145,7 @@ describe('mp3-mediarecorder', () => {
             recorder.pause();
         });
 
-        it('should set the recorder state to "recording"', async (done) => {
+        it('should set the recorder state to "recording"', (done) => {
             expect(recorder.state).toBe('paused');
             recorder.addEventListener('resume', () => {
                 expect(recorder.state).toBe('recording');
@@ -154,7 +154,7 @@ describe('mp3-mediarecorder', () => {
             recorder.resume();
         });
 
-        it('should emit a resume event', async (done) => {
+        it('should emit a resume event', (done) => {
             recorder.addEventListener('resume', (event) => {
                 expect(event.type).toEqual('resume');
                 done();
@@ -204,7 +204,7 @@ describe('mp3-mediarecorder', () => {
             });
         });
 
-        it('should emit a stop event', async (done) => {
+        it('should emit a stop event', (done) => {
             recorder.addEventListener('stop', (event) => {
                 expect(event.type).toEqual('stop');
                 done();
@@ -230,7 +230,7 @@ describe('mp3-mediarecorder', () => {
             recorder = instantiateRecorder();
         });
 
-        it('should emit a dataavailable event when the worker has recorded', async (done) => {
+        it('should emit a dataavailable event when the worker has recorded', (done) => {
             recorder.ondataavailable = (event) => {
                 const { data, type } = event;
                 expect(type).toEqual('dataavailable');

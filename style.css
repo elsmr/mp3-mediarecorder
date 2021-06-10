@@ -1,0 +1,74 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: white;
+    min-height: 100vh;
+    padding: 1rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+html {
+    box-sizing: border-box;
+}
+
+h1 {
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+}
+
+main {
+    padding: 0 2rem;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    flex-flow: column wrap;
+}
+
+.controls > * + * {
+    margin-top: 0.5rem;
+}
+
+.controls > *,
+.controls .nes-btn {
+    width: 100%;
+}
+
+main > * + * {
+    margin-top: 2rem;
+}
+
+#recordings {
+    min-height: 200px;
+}
+
+#recordings audio {
+    width: 100%;
+}
+
+#recordings > audio + audio {
+    margin-top: 1rem;
+}
+
+.is-disabled {
+    pointer-events: none;
+}
+
+@media (min-width: 580px) {
+    .controls {
+        flex-direction: row;
+    }
+
+    .controls > * + * {
+        margin-top: 0;
+        margin-left: 0.5rem;
+    }
+
+    .controls > *,
+    .controls .nes-btn {
+        width: auto;
+    }
+}

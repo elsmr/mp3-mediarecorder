@@ -5,16 +5,12 @@
         "module": "es2015",
         "lib": ["es2015", "es2016", "es2017", "dom"],
         "strict": true,
-        "sourceMap": true,
-        "declaration": true,
         "allowSyntheticDefaultImports": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        "declarationDir": "dist",
-        "outDir": "dist/lib",
         "resolveJsonModule": true,
-        "declarationMap": true
+        "rootDir": "src"
     },
-    "include": ["src/*.ts"],
+    "include": ["src/**/*.ts"],
     "exclude": ["**/*.test.ts"]
 }

@@ -59,6 +59,9 @@ typings/
 # build output
 dist
 /worker
+/types
+/recorder
+/index.d.ts
 test
 build
 

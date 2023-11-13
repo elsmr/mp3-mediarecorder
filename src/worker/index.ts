@@ -22,54 +22,56 @@ export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
     const TOTAL_STACK = 5 * 1024 * 1024;
     const TOTAL_MEMORY = 128 * 1024 * 1024;
     const WASM_PAGE_SIZE = 64 * 1024;
-    const ctx = (self as unknown) as WorkerGlobalScope;
+    const ctx = self as unknown as WorkerGlobalScope;
     const memory = new WebAssembly.Memory({
         initial: TOTAL_MEMORY / WASM_PAGE_SIZE,
-        maximum: TOTAL_MEMORY / WASM_PAGE_SIZE
+        maximum: TOTAL_MEMORY / WASM_PAGE_SIZE,
     });
     let dynamicTop = TOTAL_STACK;
-    let imports: WebAssemblyImports = { env : {
-        memory,
-        sbrk: (increment: number): number => {
-            const oldDynamicTop = dynamicTop;
-            dynamicTop += increment;
-            return oldDynamicTop;
+    let imports: WebAssemblyImports = {
+        env: {
+            memory,
+            sbrk: (increment: number): number => {
+                const oldDynamicTop = dynamicTop;
+                dynamicTop += increment;
+                return oldDynamicTop;
+            },
+            exit: () => ctx.postMessage({ type: 'ERROR', error: 'internal' }),
+            pow: Math.pow,
+            powf: Math.pow,
+            exp: Math.exp,
+            sqrtf: Math.sqrt,
+            cos: Math.cos,
+            log: Math.log,
+            sin: Math.sin,
         },
-        exit: () => ctx.postMessage({ type: 'ERROR', error: 'internal' }),
-        pow: Math.pow,
-        powf: Math.pow,
-        exp: Math.exp,
-        sqrtf: Math.sqrt,
-        cos: Math.cos,
-        log: Math.log,
-        sin: Math.sin
-    } }
-    const vmsg: Promise<VmsgWasm> = getWasmModule(vmsgWasmUrl, imports).then(wasm =>
-        (wasm.instance.exports as unknown) as VmsgWasm
+    };
+    const vmsg: Promise<VmsgWasm> = getWasmModule(vmsgWasmUrl, imports).then(
+        (wasm) => wasm.instance.exports as unknown as VmsgWasm,
     );
     let isRecording = false;
     let vmsgRef: number;
     let pcmLeft: Float32Array;
 
-    function getWasmModuleFallback (
+    function getWasmModuleFallback(
         url: string,
-        imports: WebAssemblyImports
+        imports: WebAssemblyImports,
     ): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
         return fetch(url)
-            .then(response => response.arrayBuffer())
-            .then(buffer => WebAssembly.instantiate(buffer, imports));
-    };
+            .then((response) => response.arrayBuffer())
+            .then((buffer) => WebAssembly.instantiate(buffer, imports));
+    }
 
-    function getWasmModule (
+    function getWasmModule(
         url: string,
-        imports: WebAssemblyImports
+        imports: WebAssemblyImports,
     ): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
         if (!WebAssembly.instantiateStreaming) {
             return getWasmModuleFallback(url, imports);
         }
 
         return WebAssembly.instantiateStreaming(fetch(url), imports).catch(() => getWasmModuleFallback(url, imports));
-    };
+    }
 
     const onStartRecording = async (config: Mp3WorkerEncodingConfig): Promise<void> => {
         const vmsgInstance = await vmsg;
@@ -129,7 +131,10 @@ export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
                 }
             }
         } catch (err) {
-            ctx.postMessage({ type: 'ERROR', error: err.message });
+            ctx.postMessage({
+                type: 'ERROR',
+                error: typeof err === 'object' && err && 'message' in err ? err.message : err,
+            });
         }
     });
 };

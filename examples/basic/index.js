@@ -73,7 +73,7 @@ if (isBrowserSupported) {
                 },
                 (reason) => {
                     console.warn('Could not get microphone access.\nError:', reason.message);
-                }
+                },
             );
     });
 
@@ -102,11 +102,11 @@ if (isBrowserSupported) {
 
     if (!supportsUserMediaAPI) {
         renderError(
-            'MP3 MediaRecorder requires the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Media_Streams_API" class="nes-text is-error">getUserMedia API</a> but it is not supported in your browser.'
+            'MP3 MediaRecorder requires the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Media_Streams_API" class="nes-text is-error">getUserMedia API</a> but it is not supported in your browser.',
         );
     } else if (!supportsWasm) {
         renderError(
-            'MP3 MediaRecorder requires <a href="https://developer.mozilla.org/en-US/docs/WebAssembly" class="nes-text is-error">WebAssembly</a> but it is not supported in your browser.'
+            'MP3 MediaRecorder requires <a href="https://developer.mozilla.org/en-US/docs/WebAssembly" class="nes-text is-error">WebAssembly</a> but it is not supported in your browser.',
         );
     }
 }

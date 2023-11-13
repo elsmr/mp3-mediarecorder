@@ -98,7 +98,7 @@ describe('mp3-mediarecorder', () => {
             const recorder = instantiateRecorder();
             worker.onmessage({ data: workerRecordingMessage() });
             expect(() => recorder.start()).toThrowError(
-                new Error("Failed to execute 'start' on 'MediaRecorder': The MediaRecorder's state is 'recording'.")
+                new Error("Failed to execute 'start' on 'MediaRecorder': The MediaRecorder's state is 'recording'."),
             );
         });
     });
@@ -130,7 +130,7 @@ describe('mp3-mediarecorder', () => {
         it('should throw when pause is called before recording', async () => {
             const recorder = instantiateRecorder();
             expect(() => recorder.pause()).toThrowError(
-                new Error("Failed to execute 'pause' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.")
+                new Error("Failed to execute 'pause' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."),
             );
         });
     });
@@ -165,7 +165,7 @@ describe('mp3-mediarecorder', () => {
         it('should throw when resume is called before recording', async () => {
             const recorder = instantiateRecorder();
             expect(() => recorder.resume()).toThrowError(
-                new Error("Failed to execute 'resume' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.")
+                new Error("Failed to execute 'resume' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."),
             );
         });
     });
@@ -216,7 +216,7 @@ describe('mp3-mediarecorder', () => {
         it('should throw when stop is called before starting a recording', async () => {
             const recorder = instantiateRecorder();
             expect(() => recorder.stop()).toThrowError(
-                new Error("Failed to execute 'stop' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.")
+                new Error("Failed to execute 'stop' on 'MediaRecorder': The MediaRecorder's state is 'inactive'."),
             );
         });
     });

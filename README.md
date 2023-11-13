@@ -50,7 +50,7 @@ import Mp3RecorderWorker from 'workerize-loader!./worker';
 
 const recorder = new Mp3MediaRecorder(
     mediaStream, // MediaStream instance
-    { worker: Mp3RecorderWorker() }
+    { worker: Mp3RecorderWorker() },
 );
 recorder.start(); // 🎉
 ```
@@ -95,7 +95,7 @@ const recorder = new Mp3MediaRecorder(
         worker: Mp3RecorderWorker(),
         // Optionally supply your own AudioContext
         audioContext: new AudioContext(),
-    }
+    },
 );
 ```
 

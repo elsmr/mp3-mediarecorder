@@ -18,7 +18,7 @@ const createGain = (ctx: AudioContext) => (ctx.createGain || (ctx as any).create
 const createScriptProcessor = (ctx: AudioContext) =>
     (ctx.createScriptProcessor || (ctx as any).createJavaScriptNode).call(ctx, 4096, 1, 1);
 
-export class Mp3MediaRecorder extends EventTarget {
+export class Mp3MediaRecorder extends EventTarget<any> {
     stream: MediaStream;
     mimeType = MP3_MIME_TYPE;
     state: RecordingState = 'inactive';
@@ -86,7 +86,7 @@ export class Mp3MediaRecorder extends EventTarget {
         }
         this.audioContext.suspend().then(() => {
             this.state = 'paused';
-            this.dispatchEvent(new Event('pause'));
+            this.dispatchEvent(new Event('pause') as never);
         });
     }
 
@@ -96,7 +96,7 @@ export class Mp3MediaRecorder extends EventTarget {
         }
         this.audioContext.resume().then(() => {
             this.state = 'recording';
-            this.dispatchEvent(new Event('resume'));
+            this.dispatchEvent(new Event('resume') as never);
         });
     }
 
@@ -106,7 +106,7 @@ export class Mp3MediaRecorder extends EventTarget {
 
     private getStateError(method: string) {
         return new Error(
-            `Failed to execute '${method}' on 'MediaRecorder': The MediaRecorder's state is '${this.state}'.`
+            `Failed to execute '${method}' on 'MediaRecorder': The MediaRecorder's state is '${this.state}'.`,
         );
     }
 
@@ -116,7 +116,7 @@ export class Mp3MediaRecorder extends EventTarget {
         switch (message.type) {
             case PostMessageType.WORKER_RECORDING: {
                 const event = new Event('start');
-                this.dispatchEvent(event);
+                this.dispatchEvent(event as never);
                 this.state = 'recording';
                 break;
             }
@@ -124,7 +124,7 @@ export class Mp3MediaRecorder extends EventTarget {
                 const error = new Error(message.error) as DOMException;
                 const errEvent = new Event('error');
                 (errEvent as any).error = error;
-                this.dispatchEvent(errEvent);
+                this.dispatchEvent(errEvent as never);
                 this.state = 'inactive';
                 break;
             }
@@ -139,8 +139,8 @@ export class Mp3MediaRecorder extends EventTarget {
                           timecode: Date.now(),
                       })
                     : fallbackDataEvent;
-                this.dispatchEvent(dataEvent);
-                this.dispatchEvent(stopEvent);
+                this.dispatchEvent(dataEvent as never);
+                this.dispatchEvent(stopEvent as never);
                 this.state = 'inactive';
                 break;
             }

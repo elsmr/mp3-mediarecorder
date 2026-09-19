@@ -1,18 +1,27 @@
 import { mock } from 'bun:test';
 
-const node = () => ({ connect: mock(), disconnect: mock(), gain: { value: 0 } });
+const node = () => ({ connect: mock(), disconnect: mock() });
 
 Object.assign(globalThis, {
     MediaStream: class {},
     AudioContext: class {
         state = 'running';
         sampleRate = 44100;
+        destination = {};
+        audioWorklet = { addModule: mock(() => Promise.resolve()) };
         resume = mock(() => Promise.resolve());
         suspend = mock(() => Promise.resolve());
         close = mock();
         createMediaStreamSource = mock(node);
-        createGain = mock(node);
-        createScriptProcessor = mock(node);
+    },
+    AudioWorkletNode: class {
+        connect = mock();
+        disconnect = mock();
+        port = { postMessage: mock(), onmessage: null as ((event: MessageEvent) => void) | null };
+        constructor(
+            public context: AudioContext,
+            public name: string,
+        ) {}
     },
     BlobEvent: class extends Event {
         data: Blob;

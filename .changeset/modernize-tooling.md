@@ -6,7 +6,7 @@ Modernized package: ESM-only, ~1 kB, no runtime dependencies besides the `vmsg` 
 
 ## Migrating from v4
 
-**Browser support** is now Chrome 64+, Firefox 59+, Safari 14+, Edge 79+ (native constructible `EventTarget`, `BlobEvent`, module workers).
+**Browser support** is now Chrome 66+, Firefox 76+, Safari 14.1+, Edge 79+ (AudioWorklet, native constructible `EventTarget`, `BlobEvent`, module workers).
 
 **ESM only.** The UMD, ES5 and CommonJS builds are gone. Bundler users need no change. Without a bundler, replace
 

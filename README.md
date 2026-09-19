@@ -11,7 +11,7 @@ View the [live demo](https://mp3-mediarecorder.elsmr.dev)
 ## Features
 
 - Standard [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) API
-- Audio encoding off the main thread using Web Workers
+- Audio capture in an AudioWorklet, encoding in a Web Worker — nothing heavy on the main thread
 - Consistent MP3 file output in all supported browsers
 - High quality type definitions
 - ESM only, ~1kB main library
@@ -19,9 +19,9 @@ View the [live demo](https://mp3-mediarecorder.elsmr.dev)
 
 ## Browser Support
 
-- Chrome 64+
-- Firefox 59+
-- Safari 14+
+- Chrome 66+
+- Firefox 76+
+- Safari 14.1+
 - Edge 79+
 
 ## Migrating from v4

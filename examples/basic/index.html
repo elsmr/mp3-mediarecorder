@@ -13,6 +13,10 @@
     <body>
         <main id="main">
             <h1>MP3 MediaRecorder</h1>
+            <p id="error" class="nes-container is-rounded nes-text is-error" hidden></p>
+            <p id="status" class="status" data-state="inactive">
+                <span class="dot"></span><span id="status-text">Ready</span><span id="duration">00:00</span>
+            </p>
             <section class="nes-container with-title" id="recordings">
                 <h2 class="title">Recordings</h2>
             </section>
@@ -21,16 +25,16 @@
                     <button class="nes-btn is-primary" id="record">Record</button>
                 </div>
                 <div>
-                    <button class="nes-btn is-error is-disabled" id="stop">Stop</button>
+                    <button class="nes-btn is-error is-disabled" id="stop" disabled>Stop</button>
                 </div>
                 <div>
-                    <button class="nes-btn is-disabled" id="resume">Resume</button>
+                    <button class="nes-btn is-disabled" id="resume" disabled>Resume</button>
                 </div>
                 <div>
-                    <button class="nes-btn is-disabled" id="pause">Pause</button>
+                    <button class="nes-btn is-disabled" id="pause" disabled>Pause</button>
                 </div>
             </div>
         </main>
     </body>
-    <script src="./index.js"></script>
+    <script type="module" src="./index.js"></script>
 </html>

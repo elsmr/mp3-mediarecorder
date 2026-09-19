@@ -2,16 +2,10 @@
 
 > How to use mp3-mediarecorder in a React app
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
-### Run
-
-Runs the example app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+Imports `mp3-mediarecorder` from this repo's `src/` through a Vite alias, so it always reflects the local source.
 
 ```shell
-yarn start
+cd examples/react
+bun install
+bun run dev
 ```

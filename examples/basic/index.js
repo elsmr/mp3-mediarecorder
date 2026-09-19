@@ -1,112 +1,128 @@
-import { Mp3MediaRecorder } from '../../src/recorder';
+import { Mp3MediaRecorder } from 'mp3-mediarecorder';
 
-const startButton = document.getElementById('record');
-const stopButton = document.getElementById('stop');
-const pauseButton = document.getElementById('pause');
-const resumeButton = document.getElementById('resume');
+const buttons = {
+    record: document.getElementById('record'),
+    stop: document.getElementById('stop'),
+    pause: document.getElementById('pause'),
+    resume: document.getElementById('resume'),
+};
 const recordings = document.getElementById('recordings');
-const main = document.getElementById('main');
+const errorBox = document.getElementById('error');
+const status = document.getElementById('status');
+const statusText = document.getElementById('status-text');
+const duration = document.getElementById('duration');
 
-let recorder = null;
-let blobs = [];
-let mediaStream = null;
-const supportsWasm = WebAssembly && typeof WebAssembly.instantiate === 'function';
-const supportsUserMediaAPI = navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function';
-const isBrowserSupported = supportsWasm && supportsUserMediaAPI;
+const enabledButtons = {
+    inactive: ['record'],
+    recording: ['stop', 'pause'],
+    paused: ['stop', 'resume'],
+};
 
-if (isBrowserSupported) {
-    const worker = new Worker('worker.js');
+const statusLabels = { inactive: 'Ready', recording: 'Recording', paused: 'Paused' };
 
-    startButton.addEventListener('click', () => {
-        navigator.mediaDevices
-            .getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
-            .then(
-                (stream) => {
-                    mediaStream = stream;
-                    recorder = new Mp3MediaRecorder(stream, { worker });
-                    recorder.start();
+// Elapsed recording time excludes pauses: accumulate finished segments, track the running one by its start time.
+const timer = { elapsed: 0, segmentStart: null };
 
-                    recorder.onstart = (e) => {
-                        console.log('onstart', e);
-                        blobs = [];
-                        startButton.classList.add('is-disabled');
-                        stopButton.classList.remove('is-disabled');
-                        pauseButton.classList.remove('is-disabled');
-                    };
+const formatDuration = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${minutes}:${seconds}`;
+};
 
-                    recorder.ondataavailable = (e) => {
-                        console.log('ondataavailable', e);
-                        blobs.push(e.data);
-                    };
+const renderDuration = () => {
+    const running = timer.segmentStart === null ? 0 : Date.now() - timer.segmentStart;
+    duration.textContent = formatDuration(timer.elapsed + running);
+};
 
-                    recorder.onstop = (e) => {
-                        console.log('onstop', e);
-                        mediaStream.getTracks().forEach((track) => track.stop());
+setInterval(renderDuration, 200);
 
-                        startButton.classList.remove('is-disabled');
-                        pauseButton.classList.add('is-disabled');
-                        stopButton.classList.add('is-disabled');
-
-                        const mp3Blob = new Blob(blobs, { type: 'audio/mpeg' });
-                        const mp3BlobUrl = URL.createObjectURL(mp3Blob);
-                        const audio = new Audio();
-                        audio.controls = true;
-                        audio.src = mp3BlobUrl;
-                        recordings.appendChild(audio);
-                    };
-
-                    recorder.onpause = (e) => {
-                        console.log('onpause', e);
-                        resumeButton.classList.remove('is-disabled');
-                        pauseButton.classList.add('is-disabled');
-                    };
-
-                    recorder.onresume = (e) => {
-                        console.log('onresume', e);
-                        resumeButton.classList.add('is-disabled');
-                        pauseButton.classList.remove('is-disabled');
-                    };
-
-                    recorder.onerror = (e) => {
-                        console.error('onerror', e);
-                    };
-                },
-                (reason) => {
-                    console.warn('Could not get microphone access.\nError:', reason.message);
-                },
-            );
-    });
-
-    stopButton.addEventListener('click', () => {
-        recorder.stop();
-    });
-
-    pauseButton.addEventListener('click', () => {
-        recorder.pause();
-    });
-
-    resumeButton.addEventListener('click', () => {
-        recorder.resume();
-    });
-} else {
-    const renderError = (reason) => {
-        const clonedMain = main.cloneNode(false);
-        clonedMain.innerHTML = `
-            <h1 class="nes-text is-error">MP3 MediaRecorder is not supported</h1>
-            <p class="nes-text">
-                ${reason}
-            </p>
-        `;
-        main.parentNode.replaceChild(clonedMain, main);
-    };
-
-    if (!supportsUserMediaAPI) {
-        renderError(
-            'MP3 MediaRecorder requires the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Media_Streams_API" class="nes-text is-error">getUserMedia API</a> but it is not supported in your browser.',
-        );
-    } else if (!supportsWasm) {
-        renderError(
-            'MP3 MediaRecorder requires <a href="https://developer.mozilla.org/en-US/docs/WebAssembly" class="nes-text is-error">WebAssembly</a> but it is not supported in your browser.',
-        );
+const setState = (state) => {
+    if (state === 'recording') {
+        timer.segmentStart = Date.now();
+    } else if (timer.segmentStart !== null) {
+        timer.elapsed += Date.now() - timer.segmentStart;
+        timer.segmentStart = null;
     }
+    status.dataset.state = state;
+    statusText.textContent = statusLabels[state];
+    renderDuration();
+    Object.entries(buttons).forEach(([name, button]) => {
+        const enabled = enabledButtons[state].includes(name);
+        button.disabled = !enabled;
+        button.classList.toggle('is-disabled', !enabled);
+    });
+};
+
+const showError = (message) => {
+    errorBox.textContent = message;
+    errorBox.hidden = false;
+    setState('inactive');
+};
+
+const microphoneErrors = {
+    NotAllowedError: 'Microphone access was denied. Allow it in your browser settings and try again.',
+    NotFoundError: 'No microphone found. Check that one is connected and that your OS allows this browser to use it.',
+    NotReadableError: 'The microphone is in use by another application.',
+    SecurityError: 'Microphone access requires a secure context (https:// or localhost).',
+};
+
+const unsupportedReason = () => {
+    if (!window.isSecureContext) return microphoneErrors.SecurityError;
+    if (!navigator.mediaDevices?.getUserMedia) return 'This browser does not support getUserMedia.';
+    if (typeof WebAssembly?.instantiate !== 'function') return 'This browser does not support WebAssembly.';
+    if (typeof AudioWorkletNode === 'undefined' && typeof ScriptProcessorNode === 'undefined') {
+        return 'This browser does not support the Web Audio API.';
+    }
+    return null;
+};
+
+const addRecording = (blob) => {
+    const audio = document.createElement('audio');
+    audio.controls = true;
+    audio.src = URL.createObjectURL(blob);
+    recordings.appendChild(audio);
+};
+
+const unsupported = unsupportedReason();
+if (unsupported) {
+    showError(unsupported);
+} else {
+    const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+    worker.onerror = (event) => showError(`Worker failed to load: ${event.message ?? 'unknown error'}`);
+
+    let recorder = null;
+
+    buttons.record.addEventListener('click', async () => {
+        errorBox.hidden = true;
+        let stream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            });
+        } catch (error) {
+            showError(microphoneErrors[error.name] ?? `Could not access the microphone: ${error.message}`);
+            return;
+        }
+
+        recorder = new Mp3MediaRecorder(stream, { worker });
+        timer.elapsed = 0;
+        recorder.onstart = () => setState('recording');
+        recorder.onpause = () => setState('paused');
+        recorder.onresume = () => setState('recording');
+        recorder.ondataavailable = (event) => addRecording(event.data);
+        recorder.onstop = () => {
+            stream.getTracks().forEach((track) => track.stop());
+            setState('inactive');
+        };
+        recorder.onerror = (event) => {
+            stream.getTracks().forEach((track) => track.stop());
+            showError(`Recording failed: ${event.error?.message ?? 'unknown error'}`);
+        };
+        recorder.start();
+    });
+
+    buttons.stop.addEventListener('click', () => recorder.stop());
+    buttons.pause.addEventListener('click', () => recorder.pause());
+    buttons.resume.addEventListener('click', () => recorder.resume());
 }

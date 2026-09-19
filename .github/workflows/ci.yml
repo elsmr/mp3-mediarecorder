@@ -18,3 +18,4 @@ jobs:
             - run: bun test
             - run: bun run build
             - run: bun run size
+            - run: cd examples/react && bun install --frozen-lockfile && bun run build

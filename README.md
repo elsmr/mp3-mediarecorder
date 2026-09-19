@@ -24,6 +24,10 @@ View the [live demo](https://mp3-mediarecorder.elsmr.dev)
 - Safari 14+
 - Edge 79+
 
+## Migrating from v4
+
+v5 is ESM-only and requires a module worker. See the [changelog](CHANGELOG.md) for the full guide.
+
 ## Installation
 
 ```shell

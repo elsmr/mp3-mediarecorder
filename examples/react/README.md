@@ -6,5 +6,6 @@ Imports `mp3-mediarecorder` from this repo's `src/` through a Vite alias, so it 
 
 ```shell
 cd examples/react
+bun install
 bun run dev
 ```

@@ -26,9 +26,6 @@
         "type": "git",
         "url": "git+https://github.com/elsmr/mp3-mediarecorder.git"
     },
-    "workspaces": [
-        "examples/react"
-    ],
     "files": [
         "dist"
     ],

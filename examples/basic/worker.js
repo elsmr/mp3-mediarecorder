@@ -1,4 +1,4 @@
-import 'regenerator-runtime/runtime'; // Needed when building with Parcel
-import { initMp3MediaEncoder } from '../../src/worker';
+import { initMp3MediaEncoder } from 'mp3-mediarecorder/worker';
+import vmsgWasmUrl from 'mp3-mediarecorder/vmsg.wasm?url';
 
-initMp3MediaEncoder({ vmsgWasmUrl: 'https://unpkg.com/vmsg@0.4.0/vmsg.wasm' });
+initMp3MediaEncoder({ vmsgWasmUrl });

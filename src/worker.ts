@@ -1,10 +1,8 @@
-import { Mp3WorkerConfig, Mp3WorkerEncodingConfig } from '../types/config.type';
-import { WorkerPostMessage } from '../types/post-message.type';
+import type { Mp3WorkerConfig, Mp3WorkerEncodingConfig, RecorderMessage, WorkerMessage } from './messages';
 
 interface WorkerGlobalScope {
-    onmessage: (message: MessageEvent) => void;
-    postMessage: (message: any) => void;
-    addEventListener: (event: string, handler: Function) => void;
+    postMessage: (message: WorkerMessage) => void;
+    addEventListener: (event: 'message', handler: (event: MessageEvent<RecorderMessage>) => void) => void;
 }
 
 interface VmsgWasm {
@@ -111,8 +109,8 @@ export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
         }
     };
 
-    ctx.addEventListener('message', async (event: MessageEvent) => {
-        const message: WorkerPostMessage = event.data;
+    ctx.addEventListener('message', async (event) => {
+        const message = event.data;
         try {
             switch (message.type) {
                 case 'START_RECORDING': {
@@ -133,7 +131,7 @@ export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
         } catch (err) {
             ctx.postMessage({
                 type: 'ERROR',
-                error: typeof err === 'object' && err && 'message' in err ? err.message : err,
+                error: err instanceof Error ? err.message : String(err),
             });
         }
     });

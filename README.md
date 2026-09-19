@@ -157,7 +157,8 @@ Even in browsers with support for MediaRecorder, the available audio formats dif
 ```shell
 bun install
 bun run dev    # basic example at http://localhost:5173
-bun test
+bun test               # unit
+bun run test:e2e       # records a tone through the demo in headless Chromium
 bun run build
 ```
 

@@ -45,7 +45,7 @@
     },
     "scripts": {
         "build": "rm -rf dist && bun build src/index.ts src/worker.ts --root src --outdir dist --target browser && tsc -p tsconfig.build.json && cp node_modules/vmsg/vmsg.wasm dist/",
-        "test": "bun test",
+        "test": "bun test src",
         "tsc": "tsc",
         "lint": "oxlint",
         "format": "oxfmt",
@@ -53,7 +53,8 @@
         "size": "size-limit",
         "dev": "vite examples/basic --config vite.config.ts",
         "vercel-build": "vite build examples/basic --config vite.config.ts --outDir ../../public --emptyOutDir",
-        "release": "bun run build && changeset publish"
+        "release": "bun run build && changeset publish",
+        "test:e2e": "bun test e2e"
     },
     "dependencies": {
         "vmsg": "0.4.0"
@@ -64,6 +65,7 @@
         "@types/bun": "1.4.2",
         "oxfmt": "0.68.0",
         "oxlint": "1.83.0",
+        "playwright": "1.63.0",
         "size-limit": "14.0.0",
         "typescript": "7.0.2",
         "vite": "8.3.0"

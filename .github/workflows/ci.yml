@@ -15,7 +15,9 @@ jobs:
             - run: bun run format:check
             - run: bun run lint
             - run: bun run tsc
-            - run: bun test
+            - run: bun run test
+            - run: bunx playwright install --with-deps chromium
+            - run: bun run test:e2e
             - run: bun run build
             - run: bun run size
             - run: cd examples/react && bun install --frozen-lockfile && bun run build

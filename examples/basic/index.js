@@ -71,9 +71,7 @@ const unsupportedReason = () => {
     if (!window.isSecureContext) return microphoneErrors.SecurityError;
     if (!navigator.mediaDevices?.getUserMedia) return 'This browser does not support getUserMedia.';
     if (typeof WebAssembly?.instantiate !== 'function') return 'This browser does not support WebAssembly.';
-    if (typeof AudioWorkletNode === 'undefined' && typeof ScriptProcessorNode === 'undefined') {
-        return 'This browser does not support the Web Audio API.';
-    }
+    if (typeof AudioWorkletNode === 'undefined') return 'This browser does not support AudioWorklet.';
     return null;
 };
 

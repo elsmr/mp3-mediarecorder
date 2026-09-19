@@ -4,8 +4,10 @@ import { Mp3MediaRecorder } from './index';
 const nextEvent = (target: Mp3MediaRecorder, type: string) =>
     new Promise<Event>((resolve) => target.addEventListener(type, resolve as never));
 
+const tick = () => new Promise((resolve) => setTimeout(resolve));
+
 describe('mp3-mediarecorder', () => {
-    let worker: Worker;
+    let worker: Worker & { postMessage: ReturnType<typeof mock> };
     let audioContext: AudioContext;
 
     beforeEach(() => {
@@ -14,162 +16,173 @@ describe('mp3-mediarecorder', () => {
     });
 
     const instantiateRecorder = () => new Mp3MediaRecorder(new MediaStream(), { audioContext, worker });
-    const startRecording = (recorder: Mp3MediaRecorder) => {
+    const fromWorker = (data: unknown) => worker.onmessage!({ data } as MessageEvent);
+    const captureNode = (recorder: Mp3MediaRecorder) => recorder['captureNode']!;
+    const fromWorklet = (recorder: Mp3MediaRecorder, data: Float32Array | null) =>
+        captureNode(recorder).port.onmessage!({ data } as MessageEvent);
+    const startRecording = async (recorder: Mp3MediaRecorder) => {
         recorder.start();
-        worker.onmessage!({ data: { type: 'WORKER_RECORDING' } } as MessageEvent);
+        await tick();
+        fromWorker({ type: 'WORKER_RECORDING' });
     };
 
-    describe('export typing', () => {
-        it('should have an export called Mp3MediaRecorder', () => {
-            expect(Mp3MediaRecorder).toBeDefined();
-            const recorder = instantiateRecorder();
-            expect(recorder.start).toBeInstanceOf(Function);
-            expect(recorder.stop).toBeInstanceOf(Function);
-            expect(recorder.pause).toBeInstanceOf(Function);
-            expect(recorder.resume).toBeInstanceOf(Function);
-        });
-    });
-
     describe('start', () => {
-        it('should set the recorder state to "recording" when worker starts recording', () => {
+        it('loads the worklet and tells the worker to start with the context sample rate', async () => {
             const recorder = instantiateRecorder();
             recorder.start();
-            expect(recorder.state).toBe('inactive');
-            worker.onmessage!({ data: { type: 'WORKER_RECORDING' } } as MessageEvent);
-            expect(recorder.state).toBe('recording');
+            await tick();
+            expect(audioContext.audioWorklet.addModule).toHaveBeenCalledWith(expect.stringMatching(/^blob:/));
+            expect(captureNode(recorder).connect).toHaveBeenCalledWith(audioContext.destination);
+            expect(worker.postMessage).toHaveBeenCalledWith(
+                { type: 'START_RECORDING', config: { sampleRate: 44100 } },
+                [],
+            );
         });
 
-        it('should emit a start event', async () => {
+        it('becomes "recording" and emits start once the worker confirms', async () => {
             const recorder = instantiateRecorder();
             const started = nextEvent(recorder, 'start');
-            startRecording(recorder);
-            expect((await started).type).toEqual('start');
+            recorder.start();
+            expect(recorder.state).toBe('inactive');
+            await tick();
+            fromWorker({ type: 'WORKER_RECORDING' });
+            expect(recorder.state).toBe('recording');
+            expect((await started).type).toBe('start');
         });
 
-        it('should throw when start is called while recording', () => {
+        it('throws when already recording', async () => {
             const recorder = instantiateRecorder();
-            worker.onmessage!({ data: { type: 'WORKER_RECORDING' } } as MessageEvent);
+            await startRecording(recorder);
             expect(() => recorder.start()).toThrowError(
                 "Failed to execute 'start' on 'MediaRecorder': The MediaRecorder's state is 'recording'.",
             );
         });
-    });
 
-    describe('pause', () => {
-        let recorder: Mp3MediaRecorder;
-        beforeEach(() => {
-            recorder = instantiateRecorder();
-            startRecording(recorder);
-        });
-
-        it('should set the recorder state to "paused"', async () => {
-            const paused = nextEvent(recorder, 'pause');
-            recorder.pause();
-            await paused;
-            expect(recorder.state).toBe('paused');
-        });
-
-        it('should emit a pause event', async () => {
-            const paused = nextEvent(recorder, 'pause');
-            recorder.pause();
-            expect((await paused).type).toEqual('pause');
-        });
-
-        it('should throw when pause is called before recording', () => {
+        it('emits an error event when the worklet fails to load', async () => {
+            audioContext.audioWorklet.addModule = mock(() => Promise.reject(new Error('nope')));
             const recorder = instantiateRecorder();
-            expect(() => recorder.pause()).toThrowError(
-                "Failed to execute 'pause' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.",
-            );
+            const failed = nextEvent(recorder, 'error');
+            recorder.start();
+            expect(((await failed) as ErrorEvent).error.message).toBe('nope');
+            expect(recorder.state).toBe('inactive');
+        });
+
+        it('refuses a closed user-provided AudioContext', async () => {
+            (audioContext as any).state = 'closed';
+            const recorder = instantiateRecorder();
+            const failed = nextEvent(recorder, 'error');
+            recorder.start();
+            expect(((await failed) as ErrorEvent).error.message).toBe('The provided AudioContext is closed.');
         });
     });
 
-    describe('resume', () => {
-        let recorder: Mp3MediaRecorder;
+    describe('audio data', () => {
+        it('forwards worklet chunks to the worker, transferring the buffer', async () => {
+            const recorder = instantiateRecorder();
+            await startRecording(recorder);
+            const data = new Float32Array([0.1, 0.2]);
+            fromWorklet(recorder, data);
+            expect(worker.postMessage).toHaveBeenLastCalledWith({ type: 'DATA_AVAILABLE', data }, [data.buffer]);
+        });
 
+        it('drops empty chunks', async () => {
+            const recorder = instantiateRecorder();
+            await startRecording(recorder);
+            const calls = worker.postMessage.mock.calls.length;
+            fromWorklet(recorder, new Float32Array(0));
+            expect(worker.postMessage.mock.calls.length).toBe(calls);
+        });
+    });
+
+    describe('pause / resume', () => {
+        let recorder: Mp3MediaRecorder;
         beforeEach(async () => {
             recorder = instantiateRecorder();
-            startRecording(recorder);
+            await startRecording(recorder);
+        });
+
+        it('suspends the context and emits pause', async () => {
+            const paused = nextEvent(recorder, 'pause');
+            recorder.pause();
+            expect((await paused).type).toBe('pause');
+            expect(recorder.state).toBe('paused');
+            expect(audioContext.suspend).toHaveBeenCalled();
+        });
+
+        it('resumes the context and emits resume', async () => {
             const paused = nextEvent(recorder, 'pause');
             recorder.pause();
             await paused;
-        });
-
-        it('should set the recorder state to "recording"', async () => {
-            expect(recorder.state).toBe('paused');
             const resumed = nextEvent(recorder, 'resume');
             recorder.resume();
-            await resumed;
+            expect((await resumed).type).toBe('resume');
             expect(recorder.state).toBe('recording');
         });
 
-        it('should emit a resume event', async () => {
-            const resumed = nextEvent(recorder, 'resume');
-            recorder.resume();
-            expect((await resumed).type).toEqual('resume');
-        });
-
-        it('should throw when resume is called before recording', () => {
-            const recorder = instantiateRecorder();
-            expect(() => recorder.resume()).toThrowError(
-                "Failed to execute 'resume' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.",
-            );
+        it('throw when inactive', () => {
+            const fresh = instantiateRecorder();
+            expect(() => fresh.pause()).toThrowError("The MediaRecorder's state is 'inactive'.");
+            expect(() => fresh.resume()).toThrowError("The MediaRecorder's state is 'inactive'.");
         });
     });
 
     describe('stop', () => {
         let recorder: Mp3MediaRecorder;
-
-        beforeEach(() => {
+        beforeEach(async () => {
             recorder = instantiateRecorder();
-            startRecording(recorder);
+            await startRecording(recorder);
         });
 
-        it('should set the recorder state to "inactive" when worker stops recording', () => {
-            expect(recorder.state).toBe('recording');
+        it('flushes the worklet, then tells the worker to stop and tears down the graph', () => {
+            const node = captureNode(recorder);
             recorder.stop();
-            worker.onmessage!({ data: { type: 'BLOB_READY', blob: new Blob([]) } } as MessageEvent);
+            expect(node.port.postMessage).toHaveBeenCalledWith('flush');
+            expect(worker.postMessage).not.toHaveBeenCalledWith({ type: 'STOP_RECORDING' }, []);
+
+            const tail = new Float32Array([0.5]);
+            fromWorklet(recorder, tail);
+            fromWorklet(recorder, null);
+            expect(worker.postMessage.mock.calls.slice(-2)).toEqual([
+                [{ type: 'DATA_AVAILABLE', data: tail }, [tail.buffer]],
+                [{ type: 'STOP_RECORDING' }, []],
+            ]);
+            expect(node.disconnect).toHaveBeenCalled();
+            expect(audioContext.close).not.toHaveBeenCalled();
+        });
+
+        it('closes an internally created AudioContext', async () => {
+            const own = new Mp3MediaRecorder(new MediaStream(), { worker });
+            await startRecording(own);
+            own.stop();
+            fromWorklet(own, null);
+            expect(own['audioContext'].close).toHaveBeenCalled();
+        });
+
+        it('emits dataavailable then stop when the worker delivers the blob', async () => {
+            const blob = new Blob([]);
+            const events: string[] = [];
+            recorder.ondataavailable = (event) => events.push(`${event.type}:${event.data === blob}`);
+            recorder.onstop = (event) => events.push(event.type);
+            fromWorker({ type: 'BLOB_READY', blob });
+            expect(events).toEqual(['dataavailable:true', 'stop']);
             expect(recorder.state).toBe('inactive');
         });
 
-        it('should NOT close a user-provided audio context, but clean up audio nodes', () => {
-            recorder.stop();
-            expect(audioContext.close).not.toHaveBeenCalled();
-            expect(recorder['processorNode'].disconnect).toHaveBeenCalled();
-        });
-
-        it('should close an internally created audio context', () => {
-            recorder = new Mp3MediaRecorder(new MediaStream(), { worker });
-            startRecording(recorder);
-            recorder.stop();
-            expect(recorder['audioContext'].close).toHaveBeenCalled();
-        });
-
-        it('should emit a stop event', async () => {
-            const stopped = nextEvent(recorder, 'stop');
-            recorder.stop();
-            worker.onmessage!({ data: { type: 'BLOB_READY', blob: new Blob([]) } } as MessageEvent);
-            expect((await stopped).type).toEqual('stop');
-        });
-
-        it('should throw when stop is called before starting a recording', () => {
-            const recorder = instantiateRecorder();
-            expect(() => recorder.stop()).toThrowError(
-                "Failed to execute 'stop' on 'MediaRecorder': The MediaRecorder's state is 'inactive'.",
-            );
+        it('throws when inactive', () => {
+            const fresh = instantiateRecorder();
+            expect(() => fresh.stop()).toThrowError("The MediaRecorder's state is 'inactive'.");
         });
     });
 
-    describe('recorded data', () => {
-        it('should emit a dataavailable event when the worker has recorded', async () => {
-            const recording = new Blob([]);
+    describe('worker errors', () => {
+        it('emits an error event and resets to inactive', async () => {
             const recorder = instantiateRecorder();
-            const dataAvailable = new Promise<BlobEvent>((resolve) => {
-                recorder.ondataavailable = resolve;
-            });
-            worker.onmessage!({ data: { type: 'BLOB_READY', blob: recording } } as MessageEvent);
-            const { data, type } = await dataAvailable;
-            expect(type).toEqual('dataavailable');
-            expect(data).toEqual(recording);
+            await startRecording(recorder);
+            const failed = nextEvent(recorder, 'error');
+            fromWorker({ type: 'ERROR', error: 'encoding_failed' });
+            expect(((await failed) as ErrorEvent).error.message).toBe('encoding_failed');
+            expect(recorder.state).toBe('inactive');
+            expect(captureNode(recorder)).toBeNull();
         });
     });
 });

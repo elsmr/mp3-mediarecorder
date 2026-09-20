@@ -1,169 +1,408 @@
-import type { RecorderMessage, WorkerMessage } from './messages';
+import type { RecorderMessage, WorkerMessage, WorkletCommand } from './messages';
 import { WORKLET_PROCESSOR_NAME, workletSource } from './worklet';
 
 export interface Mp3MediaRecorderOptions extends MediaRecorderOptions {
-    worker: Worker;
+    /** A worker running `mp3-mediarecorder/worker`. By default one is spawned per recording and terminated after it. */
+    worker?: Worker;
+    /** Reuse an existing AudioContext. Chrome and Safari limit how many can be alive at once. */
     audioContext?: AudioContext;
+    /**
+     * 1 = mono (default), 2 = joint stereo. Not auto-detected: browsers report 2 channels for tracks whose
+     * audio processing has already mixed them to mono, which would double the file size for nothing.
+     */
+    channelCount?: 1 | 2;
+    /** Where the worker fetches `mp3.wasm` from. Defaults to the file next to the worker script. */
+    wasmUrl?: string;
+}
+
+export interface Mp3MediaRecorderEventMap {
+    start: Event;
+    stop: Event;
+    pause: Event;
+    resume: Event;
+    dataavailable: BlobEvent;
+    error: ErrorEvent;
 }
 
 const MP3_MIME_TYPE = 'audio/mpeg';
+const DEFAULT_KBPS = { 1: 64, 2: 128 } as const;
+// The worklet batches 4096 frames (85 ms at 48 kHz); slicing finer than that only yields empty blobs.
+const MIN_TIMESLICE_MS = 100;
+const MAX_TIMER_MS = 2 ** 31 - 1;
+const TRACK_POLL_MS = 250;
 
 // One URL for the lifetime of the page: addModule() is idempotent per AudioContext for the same URL,
 // while a fresh Blob URL per start() would re-register the processor name and throw.
 const workletModuleUrl = URL.createObjectURL(new Blob([workletSource], { type: 'text/javascript' }));
 
+// Spec "is type supported": "" defers to the UA; otherwise the container must be MP3 and any codecs
+// parameter may only name mp3. (The spec would have `codecs=mp3` return false from isTypeSupported
+// since "mp3" is not a synchronously exposed identifier; that hedge exists for hardware detection,
+// which does not apply here.)
+const isTypeSupported = (type: string): boolean => {
+    if (type === '') return true;
+    const [mime, ...params] = type
+        .toLowerCase()
+        .split(';')
+        .map((part) => part.trim());
+    if (mime !== 'audio/mpeg' && mime !== 'audio/mp3') return false;
+    return params.every((param) => {
+        const [key, value = ''] = param.split('=');
+        if (key !== 'codecs') return false;
+        return value
+            .replace(/^"|"$/g, '')
+            .split(',')
+            .every((codec) => codec.trim().split('.')[0] === 'mp3');
+    });
+};
+
+const invalidState = (method: string, state: RecordingState) =>
+    new DOMException(
+        `Failed to execute '${method}' on 'MediaRecorder': The MediaRecorder's state is '${state}'.`,
+        'InvalidStateError',
+    );
+
+const queueTask = (task: () => void) => setTimeout(task, 0);
+
+// Everything that belongs to one start()…stop() cycle. Sessions outlive the recorder's `state`: the
+// spec flips `state` synchronously, so a new session may begin while the previous one is still flushing.
+interface Session {
+    audioContext: AudioContext;
+    ownsAudioContext: boolean;
+    worker: Worker;
+    ownsWorker: boolean;
+    timeslice: number;
+    sourceNode: MediaStreamAudioSourceNode | null;
+    captureNode: AudioWorkletNode | null;
+    timer: ReturnType<typeof setInterval> | null;
+    paused: boolean;
+    stopping: boolean;
+    timecodeOrigin: number | null;
+    cleanupStream: () => void;
+}
+
 export class Mp3MediaRecorder extends EventTarget {
-    stream: MediaStream;
-    mimeType = MP3_MIME_TYPE;
+    readonly stream: MediaStream;
+    mimeType: string;
     state: RecordingState = 'inactive';
-    audioBitsPerSecond = 0;
-    videoBitsPerSecond = 0;
+    readonly audioBitsPerSecond: number;
+    readonly videoBitsPerSecond = 0;
+    readonly audioBitrateMode: BitrateMode = 'variable';
 
-    private audioContext: AudioContext;
-    private sourceNode: MediaStreamAudioSourceNode | null = null;
-    private captureNode: AudioWorkletNode | null = null;
-    private worker: Worker;
-    private isInternalAudioContext = false;
+    private readonly options: Mp3MediaRecorderOptions;
+    private readonly channels: 1 | 2;
+    private session: Session | null = null;
 
-    static isTypeSupported = (mimeType: string) => mimeType === MP3_MIME_TYPE;
+    static isTypeSupported = (type: string): boolean => isTypeSupported(type);
 
-    constructor(stream: MediaStream, { audioContext, worker }: Mp3MediaRecorderOptions) {
+    constructor(stream: MediaStream, options: Mp3MediaRecorderOptions = {}) {
         super();
-
-        if (!worker) {
-            throw new Error('No worker provided in Mp3MediaRecorder constructor.');
+        if (!isTypeSupported(options.mimeType ?? '')) {
+            throw new DOMException(
+                `Failed to construct 'MediaRecorder': mimeType '${options.mimeType}' is not supported.`,
+                'NotSupportedError',
+            );
         }
         this.stream = stream;
-        this.isInternalAudioContext = !audioContext;
-        this.audioContext = audioContext || new AudioContext();
-        this.worker = worker;
-        this.worker.onmessage = this.onWorkerMessage;
+        this.options = options;
+        this.mimeType = options.mimeType ?? '';
+        this.channels = options.channelCount ?? 1;
+        this.audioBitsPerSecond =
+            options.bitsPerSecond ?? options.audioBitsPerSecond ?? DEFAULT_KBPS[this.channels] * 1000;
     }
 
-    start(): void {
+    start(timeslice?: number): void {
         if (this.state !== 'inactive') {
-            throw this.getStateError('start');
+            throw invalidState('start', this.state);
         }
-        this.startCapture().catch((error: unknown) => this.fail(error));
+        if (!this.stream.active) {
+            throw new DOMException(
+                "Failed to execute 'start' on 'MediaRecorder': The MediaStream is inactive.",
+                'NotSupportedError',
+            );
+        }
+        if (this.stream.getVideoTracks().length > 0) {
+            throw new DOMException(
+                "Failed to execute 'start' on 'MediaRecorder': Only audio tracks can be recorded as audio/mpeg.",
+                'NotSupportedError',
+            );
+        }
+        const kbps = Math.round(this.audioBitsPerSecond / 1000);
+        if (kbps < 8 || kbps > 320) {
+            throw new DOMException(
+                `Failed to execute 'start' on 'MediaRecorder': audioBitsPerSecond must be between 8000 and 320000, got ${this.audioBitsPerSecond}.`,
+                'NotSupportedError',
+            );
+        }
+        // WebIDL `optional unsigned long`: undefined means "never slice", anything else is ToUint32.
+        const slice = timeslice === undefined ? Infinity : Number(timeslice) >>> 0;
+        this.state = 'recording';
+        const session = this.createSession(slice);
+        this.session = session;
+        this.setup(session).catch((error: unknown) => this.abort(session, 'UnknownError', error, 'flush'));
     }
 
     stop(): void {
-        if (this.state === 'inactive') {
-            throw this.getStateError('stop');
-        }
-        // Ask the worklet for its partial chunk; STOP_RECORDING is sent once the `null` end marker arrives.
-        this.captureNode?.port.postMessage('flush');
+        if (this.state === 'inactive') return;
+        this.inactivate();
+        this.finish(this.session!);
     }
 
     pause(): void {
         if (this.state === 'inactive') {
-            throw this.getStateError('pause');
+            throw invalidState('pause', this.state);
         }
-        this.audioContext.suspend().then(() => {
-            this.state = 'paused';
-            this.dispatchEvent(new Event('pause'));
-        });
+        if (this.state === 'paused') return;
+        this.state = 'paused';
+        const session = this.session!;
+        session.paused = true;
+        this.stopTimer(session);
+        this.command(session, 'pause');
+        queueTask(() => this.dispatchEvent(new Event('pause')));
     }
 
     resume(): void {
         if (this.state === 'inactive') {
-            throw this.getStateError('resume');
+            throw invalidState('resume', this.state);
         }
-        this.audioContext.resume().then(() => {
-            this.state = 'recording';
-            this.dispatchEvent(new Event('resume'));
-        });
+        if (this.state === 'recording') return;
+        this.state = 'recording';
+        const session = this.session!;
+        session.paused = false;
+        this.command(session, 'resume');
+        this.startTimer(session);
+        queueTask(() => this.dispatchEvent(new Event('resume')));
     }
 
     requestData(): void {
-        // not implemented, dataavailable event only fires when encoding is finished
+        if (this.state === 'inactive') {
+            throw invalidState('requestData', this.state);
+        }
+        this.session!.worker.postMessage({ type: 'REQUEST_DATA' } satisfies RecorderMessage);
     }
 
-    private getStateError(method: string) {
-        return new Error(
-            `Failed to execute '${method}' on 'MediaRecorder': The MediaRecorder's state is '${this.state}'.`,
+    private createSession(timeslice: number): Session {
+        const audioContext = this.options.audioContext ?? new AudioContext();
+        const worker = this.options.worker ?? new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+        const session: Session = {
+            audioContext,
+            ownsAudioContext: !this.options.audioContext,
+            worker,
+            ownsWorker: !this.options.worker,
+            timeslice,
+            sourceNode: null,
+            captureNode: null,
+            timer: null,
+            paused: false,
+            stopping: false,
+            timecodeOrigin: null,
+            cleanupStream: () => {},
+        };
+        worker.onmessage = (event: MessageEvent<WorkerMessage>) => this.onWorkerMessage(session, event.data);
+        worker.onerror = (event) =>
+            this.abort(session, 'UnknownError', event.error ?? (event.message || 'Worker error'), 'dead');
+        session.cleanupStream = this.watchStream(session, this.stream);
+        worker.postMessage({
+            type: 'START_RECORDING',
+            config: {
+                sampleRate: audioContext.sampleRate,
+                channels: this.channels,
+                bitrate: Math.round(this.audioBitsPerSecond / 1000),
+                infoFrame: timeslice === Infinity,
+                wasmUrl: this.options.wasmUrl,
+            },
+        } satisfies RecorderMessage);
+        return session;
+    }
+
+    // Spec: all recorded tracks ending stops the recording; changing the track set is an error.
+    // A locally stopped track changes readyState without firing 'ended', so the state is polled.
+    private watchStream(session: Session, stream: MediaStream): () => void {
+        const tracks = stream.getAudioTracks();
+        const poll = setInterval(() => {
+            if (this.session === session && tracks.every((track) => track.readyState === 'ended')) {
+                this.stop();
+            }
+        }, TRACK_POLL_MS);
+        const onTrackSetChanged = () =>
+            this.abort(
+                session,
+                'InvalidModificationError',
+                'The MediaStream track set changed while recording.',
+                'flush',
+            );
+        stream.addEventListener('addtrack', onTrackSetChanged);
+        stream.addEventListener('removetrack', onTrackSetChanged);
+        return () => {
+            clearInterval(poll);
+            stream.removeEventListener('addtrack', onTrackSetChanged);
+            stream.removeEventListener('removetrack', onTrackSetChanged);
+        };
+    }
+
+    private async setup(session: Session): Promise<void> {
+        const { audioContext } = session;
+        if (audioContext.state === 'closed') {
+            throw new Error('The provided AudioContext is closed.');
+        }
+        await audioContext.audioWorklet.addModule(workletModuleUrl);
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        if (session.stopping) {
+            // stop() arrived while the worklet was loading: nothing was captured, let the worker flush.
+            this.releaseAudio(session);
+            session.worker.postMessage({ type: 'STOP_RECORDING' } satisfies RecorderMessage);
+            return;
+        }
+        const channels = this.channels;
+        session.sourceNode = audioContext.createMediaStreamSource(this.stream);
+        session.captureNode = new AudioWorkletNode(audioContext, WORKLET_PROCESSOR_NAME, {
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            channelCount: channels,
+            channelCountMode: 'explicit',
+            processorOptions: { channels },
+        });
+        session.captureNode.port.onmessage = ({ data }: MessageEvent<Float32Array[] | null>) => {
+            if (data === null) {
+                this.releaseAudio(session);
+                session.worker.postMessage({ type: 'STOP_RECORDING' } satisfies RecorderMessage);
+            } else if (data[0]?.length > 0) {
+                session.worker.postMessage(
+                    { type: 'DATA_AVAILABLE', data } satisfies RecorderMessage,
+                    data.map((channel) => channel.buffer),
+                );
+            }
+        };
+        session.sourceNode.connect(session.captureNode);
+        // A worklet node is only rendered while it reaches the destination; its output stays silent.
+        session.captureNode.connect(audioContext.destination);
+        if (session.paused) this.command(session, 'pause');
+    }
+
+    private onWorkerMessage(session: Session, message: WorkerMessage): void {
+        switch (message.type) {
+            case 'WORKER_RECORDING':
+                // Spec: the start event is queued once recording begins, even if stop() already ran.
+                if (this.session === session && !session.stopping) {
+                    this.mimeType ||= MP3_MIME_TYPE;
+                    if (!session.paused) this.startTimer(session);
+                }
+                this.dispatchEvent(new Event('start'));
+                break;
+            case 'ERROR':
+                // The worker follows up with a final DATA message carrying what it encoded so far.
+                this.abort(session, 'UnknownError', message.error, 'worker');
+                break;
+            case 'DATA': {
+                session.timecodeOrigin ??= message.start;
+                this.dispatchEvent(
+                    new BlobEvent('dataavailable', {
+                        data: message.blob,
+                        timecode: message.start - session.timecodeOrigin,
+                    }),
+                );
+                if (message.final) {
+                    this.releaseSession(session);
+                    this.dispatchEvent(new Event('stop'));
+                }
+                break;
+            }
+        }
+    }
+
+    // Spec "inactivate the recorder".
+    private inactivate(): void {
+        this.state = 'inactive';
+        this.mimeType = this.options.mimeType ?? '';
+    }
+
+    // Normal end of a session: drain the worklet, then the worker delivers the final blob.
+    private finish(session: Session): void {
+        if (session.stopping) return;
+        session.stopping = true;
+        this.stopTimer(session);
+        session.cleanupStream();
+        if (session.captureNode) {
+            this.command(session, 'flush');
+        }
+        // Otherwise setup() is still running and will notice `stopping`.
+    }
+
+    // Recording cannot continue: error first, then whatever data was gathered, then stop. `drain` says
+    // who delivers that final blob: the worker after we ask it ('flush'), the worker on its own ('worker'),
+    // or nobody because the worker is gone ('dead').
+    private abort(session: Session, name: string, error: unknown, drain: 'flush' | 'worker' | 'dead'): void {
+        if (this.session !== session || session.stopping) return;
+        this.inactivate();
+        session.stopping = true;
+        this.stopTimer(session);
+        session.cleanupStream();
+        this.releaseAudio(session);
+        if (drain === 'worker') {
+            this.fireError(name, error);
+            return;
+        }
+        queueTask(() => {
+            this.fireError(name, error);
+            if (drain === 'flush') {
+                session.worker.postMessage({ type: 'STOP_RECORDING' } satisfies RecorderMessage);
+            } else {
+                this.releaseSession(session);
+                this.dispatchEvent(
+                    new BlobEvent('dataavailable', { data: new Blob([], { type: MP3_MIME_TYPE }), timecode: 0 }),
+                );
+                this.dispatchEvent(new Event('stop'));
+            }
+        });
+    }
+
+    private fireError(name: string, error: unknown): void {
+        const message = error instanceof Error ? error.message : String(error);
+        const exception = error instanceof DOMException ? error : new DOMException(message, name);
+        this.dispatchEvent(new ErrorEvent('error', { error: exception, message: exception.message }));
+    }
+
+    private command(session: Session, command: WorkletCommand) {
+        session.captureNode?.port.postMessage(command);
+    }
+
+    private startTimer(session: Session) {
+        if (session.timer || session.timeslice > MAX_TIMER_MS) return;
+        session.timer = setInterval(
+            () => session.worker.postMessage({ type: 'REQUEST_DATA' } satisfies RecorderMessage),
+            Math.max(session.timeslice, MIN_TIMESLICE_MS),
         );
     }
 
-    private post(message: RecorderMessage, transfer: Transferable[] = []) {
-        this.worker.postMessage(message, transfer);
+    private stopTimer(session: Session) {
+        if (session.timer) clearInterval(session.timer);
+        session.timer = null;
     }
 
-    private async startCapture(): Promise<void> {
-        if (this.audioContext.state === 'closed') {
-            if (!this.isInternalAudioContext) {
-                throw new Error('The provided AudioContext is closed.');
-            }
-            this.audioContext = new AudioContext();
+    private releaseAudio(session: Session): void {
+        if (session.captureNode) {
+            session.sourceNode?.disconnect(session.captureNode);
+            session.captureNode.disconnect();
+            session.captureNode.port.onmessage = null;
         }
-        await this.audioContext.audioWorklet.addModule(workletModuleUrl);
-        if (this.audioContext.state === 'suspended') {
-            await this.audioContext.resume();
-        }
-        this.sourceNode = this.audioContext.createMediaStreamSource(this.stream);
-        this.captureNode = new AudioWorkletNode(this.audioContext, WORKLET_PROCESSOR_NAME, {
-            numberOfInputs: 1,
-            numberOfOutputs: 1,
-            channelCount: 1,
-            channelCountMode: 'explicit',
-        });
-        this.captureNode.port.onmessage = ({ data }: MessageEvent<Float32Array | null>) => {
-            if (data === null) {
-                this.teardown();
-                this.post({ type: 'STOP_RECORDING' });
-            } else if (data.length > 0) {
-                this.post({ type: 'DATA_AVAILABLE', data }, [data.buffer]);
-            }
-        };
-        this.sourceNode.connect(this.captureNode);
-        // A worklet node is only rendered while it reaches the destination; its output stays silent.
-        this.captureNode.connect(this.audioContext.destination);
-        this.post({ type: 'START_RECORDING', config: { sampleRate: this.audioContext.sampleRate } });
-    }
-
-    private teardown(): void {
-        this.sourceNode?.disconnect();
-        this.captureNode?.disconnect();
-        if (this.captureNode) this.captureNode.port.onmessage = null;
-        this.sourceNode = null;
-        this.captureNode = null;
-        if (this.isInternalAudioContext) {
-            this.audioContext.close();
+        session.sourceNode = null;
+        session.captureNode = null;
+        if (session.ownsAudioContext && session.audioContext.state !== 'closed') {
+            session.audioContext.close();
         }
     }
 
-    private fail(error: unknown): void {
-        this.teardown();
-        this.state = 'inactive';
-        const errEvent = new Event('error');
-        (errEvent as any).error = error instanceof Error ? error : new Error(String(error));
-        this.dispatchEvent(errEvent);
+    private releaseSession(session: Session): void {
+        this.stopTimer(session);
+        session.cleanupStream();
+        this.releaseAudio(session);
+        session.worker.onmessage = null;
+        session.worker.onerror = null;
+        if (session.ownsWorker) session.worker.terminate();
+        if (this.session === session) this.session = null;
     }
-
-    private onWorkerMessage = (event: MessageEvent<WorkerMessage>): void => {
-        const message = event.data;
-
-        switch (message.type) {
-            case 'WORKER_RECORDING': {
-                const event = new Event('start');
-                this.dispatchEvent(event);
-                this.state = 'recording';
-                break;
-            }
-            case 'ERROR': {
-                this.fail(new Error(message.error));
-                break;
-            }
-            case 'BLOB_READY': {
-                const stopEvent = new Event('stop');
-                const dataEvent = new BlobEvent('dataavailable', { data: message.blob, timecode: Date.now() });
-                this.dispatchEvent(dataEvent);
-                this.dispatchEvent(stopEvent);
-                this.state = 'inactive';
-                break;
-            }
-        }
-    };
 }
 
 const EVENT_TYPES = ['start', 'stop', 'pause', 'resume', 'dataavailable', 'error'] as const;
@@ -183,9 +422,38 @@ EVENT_TYPES.forEach((type) => {
     });
 });
 
+type Handler<K extends keyof Mp3MediaRecorderEventMap> = (
+    this: Mp3MediaRecorder,
+    event: Mp3MediaRecorderEventMap[K],
+) => void;
+
 declare module './index' {
-    interface Mp3MediaRecorder extends Pick<
-        MediaRecorder,
-        'onstart' | 'onstop' | 'onpause' | 'onresume' | 'ondataavailable' | 'onerror'
-    > {}
+    interface Mp3MediaRecorder {
+        onstart: Handler<'start'> | null;
+        onstop: Handler<'stop'> | null;
+        onpause: Handler<'pause'> | null;
+        onresume: Handler<'resume'> | null;
+        ondataavailable: Handler<'dataavailable'> | null;
+        onerror: Handler<'error'> | null;
+        addEventListener<K extends keyof Mp3MediaRecorderEventMap>(
+            type: K,
+            listener: Handler<K>,
+            options?: boolean | AddEventListenerOptions,
+        ): void;
+        addEventListener(
+            type: string,
+            listener: EventListenerOrEventListenerObject | null,
+            options?: boolean | AddEventListenerOptions,
+        ): void;
+        removeEventListener<K extends keyof Mp3MediaRecorderEventMap>(
+            type: K,
+            listener: Handler<K>,
+            options?: boolean | EventListenerOptions,
+        ): void;
+        removeEventListener(
+            type: string,
+            listener: EventListenerOrEventListenerObject | null,
+            options?: boolean | EventListenerOptions,
+        ): void;
+    }
 }

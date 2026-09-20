@@ -1,0 +1,61 @@
+diff -ruN a/libmp3lame/bitstream.c b/libmp3lame/bitstream.c
+--- a/libmp3lame/bitstream.c	2026-09-20 12:26:43
++++ b/libmp3lame/bitstream.c	2026-09-20 12:26:43
+@@ -466,11 +466,6 @@
+         }
+     }
+ 
+-    if (cfg->error_protection) {
+-        /* (jo) error_protection: add crc16 information to header */
+-        CRC_writeheader(gfc, esv->header[esv->h_ptr].buf);
+-    }
+-
+     {
+         int const old = esv->h_ptr;
+         assert(esv->header[old].ptr == cfg->sideinfo_len * 8);
+diff -ruN a/libmp3lame/presets.c b/libmp3lame/presets.c
+--- a/libmp3lame/presets.c	2026-09-20 12:26:43
++++ b/libmp3lame/presets.c	2026-09-20 12:26:43
+@@ -359,42 +359,6 @@
+     }
+ 
+     gfp->preset = preset;
+-    {
+-        switch (preset) {
+-        case V9:
+-            apply_vbr_preset(gfp, 9, enforce);
+-            return preset;
+-        case V8:
+-            apply_vbr_preset(gfp, 8, enforce);
+-            return preset;
+-        case V7:
+-            apply_vbr_preset(gfp, 7, enforce);
+-            return preset;
+-        case V6:
+-            apply_vbr_preset(gfp, 6, enforce);
+-            return preset;
+-        case V5:
+-            apply_vbr_preset(gfp, 5, enforce);
+-            return preset;
+-        case V4:
+-            apply_vbr_preset(gfp, 4, enforce);
+-            return preset;
+-        case V3:
+-            apply_vbr_preset(gfp, 3, enforce);
+-            return preset;
+-        case V2:
+-            apply_vbr_preset(gfp, 2, enforce);
+-            return preset;
+-        case V1:
+-            apply_vbr_preset(gfp, 1, enforce);
+-            return preset;
+-        case V0:
+-            apply_vbr_preset(gfp, 0, enforce);
+-            return preset;
+-        default:
+-            break;
+-        }
+-    }
+     if (8 <= preset && preset <= 320) {
+         return apply_abr_preset(gfp, preset, enforce);
+     }

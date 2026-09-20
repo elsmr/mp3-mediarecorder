@@ -1,138 +1,88 @@
-import type { Mp3WorkerConfig, Mp3WorkerEncodingConfig, RecorderMessage, WorkerMessage } from './messages';
+import { createMp3Encoder, loadMp3Module, type Mp3Encoder } from './encoder';
+import type { Mp3WorkerEncodingConfig, RecorderMessage, WorkerMessage } from './messages';
 
-interface WorkerGlobalScope {
-    postMessage: (message: WorkerMessage) => void;
-    addEventListener: (event: 'message', handler: (event: MessageEvent<RecorderMessage>) => void) => void;
-}
+// Runs as the recorder's Web Worker. Mp3MediaRecorder spawns one per recording by default and
+// terminates it after the final DATA message, which also frees the wasm memory.
+const post = (message: WorkerMessage) => (self as unknown as Worker).postMessage(message);
 
-interface VmsgWasm {
-    vmsg_init: (sampleRate: number) => number;
-    vmsg_encode: (ref: number, length: number) => number;
-    vmsg_free: (ref: number) => void;
-    vmsg_flush: (ref: number) => number;
-}
-
-type WebAssemblyImports = Record<string, Record<string, WebAssembly.ImportValue>>;
-
-export const initMp3MediaEncoder = ({ vmsgWasmUrl }: Mp3WorkerConfig) => {
-    // from vmsg
-    // Must be in sync with emcc settings!
-    const TOTAL_STACK = 5 * 1024 * 1024;
-    const TOTAL_MEMORY = 128 * 1024 * 1024;
-    const WASM_PAGE_SIZE = 64 * 1024;
-    const ctx = self as unknown as WorkerGlobalScope;
-    const memory = new WebAssembly.Memory({
-        initial: TOTAL_MEMORY / WASM_PAGE_SIZE,
-        maximum: TOTAL_MEMORY / WASM_PAGE_SIZE,
-    });
-    let dynamicTop = TOTAL_STACK;
-    let imports: WebAssemblyImports = {
-        env: {
-            memory,
-            sbrk: (increment: number): number => {
-                const oldDynamicTop = dynamicTop;
-                dynamicTop += increment;
-                return oldDynamicTop;
-            },
-            exit: () => ctx.postMessage({ type: 'ERROR', error: 'internal' }),
-            pow: Math.pow,
-            powf: Math.pow,
-            exp: Math.exp,
-            sqrtf: Math.sqrt,
-            cos: Math.cos,
-            log: Math.log,
-            sin: Math.sin,
-        },
-    };
-    const vmsg: Promise<VmsgWasm> = getWasmModule(vmsgWasmUrl, imports).then(
-        (wasm) => wasm.instance.exports as unknown as VmsgWasm,
-    );
-    let isRecording = false;
-    let vmsgRef: number;
-    let pcmLeft: Float32Array;
-
-    function getWasmModuleFallback(
-        url: string,
-        imports: WebAssemblyImports,
-    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
-        return fetch(url)
-            .then((response) => response.arrayBuffer())
-            .then((buffer) => WebAssembly.instantiate(buffer, imports));
-    }
-
-    function getWasmModule(
-        url: string,
-        imports: WebAssemblyImports,
-    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
-        if (!WebAssembly.instantiateStreaming) {
-            return getWasmModuleFallback(url, imports);
-        }
-
-        return WebAssembly.instantiateStreaming(fetch(url), imports).catch(() => getWasmModuleFallback(url, imports));
-    }
-
-    const onStartRecording = async (config: Mp3WorkerEncodingConfig): Promise<void> => {
-        const vmsgInstance = await vmsg;
-        isRecording = true;
-        vmsgRef = vmsgInstance.vmsg_init(config.sampleRate);
-        if (!vmsgRef || !vmsgInstance) {
-            throw new Error('init_failed');
-        }
-        const pcmLeftRef = new Uint32Array(memory.buffer, vmsgRef, 1)[0];
-        pcmLeft = new Float32Array(memory.buffer, pcmLeftRef);
-    };
-
-    const onStopRecording = async (): Promise<Blob> => {
-        const vmsgInstance = await vmsg;
-        isRecording = false;
-        if (vmsgInstance.vmsg_flush(vmsgRef) < 0) {
-            throw new Error('flush_failed');
-        }
-        const mp3BytesRef = new Uint32Array(memory.buffer, vmsgRef + 4, 1)[0];
-        const size = new Uint32Array(memory.buffer, vmsgRef + 8, 1)[0];
-        const mp3Bytes = new Uint8Array(memory.buffer, mp3BytesRef, size);
-        const blob = new Blob([mp3Bytes], { type: 'audio/mpeg' });
-        vmsgInstance.vmsg_free(vmsgRef);
-        return blob;
-    };
-
-    const onDataReceived = async (data: ArrayLike<number>): Promise<void> => {
-        if (!isRecording) {
-            return;
-        }
-
-        pcmLeft.set(data);
-        const vmsgInstance = await vmsg;
-        const encodedBytesAmount = vmsgInstance.vmsg_encode(vmsgRef, data.length);
-        if (encodedBytesAmount < 0) {
-            throw new Error('encoding_failed');
-        }
-    };
-
-    ctx.addEventListener('message', async (event) => {
-        const message = event.data;
-        try {
-            switch (message.type) {
-                case 'START_RECORDING': {
-                    await onStartRecording(message.config);
-                    ctx.postMessage({ type: 'WORKER_RECORDING' });
-                    break;
-                }
-                case 'DATA_AVAILABLE': {
-                    await onDataReceived(message.data);
-                    break;
-                }
-                case 'STOP_RECORDING': {
-                    const blob = await onStopRecording();
-                    ctx.postMessage({ type: 'BLOB_READY', blob });
-                    break;
-                }
-            }
-        } catch (err) {
-            ctx.postMessage({
-                type: 'ERROR',
-                error: err instanceof Error ? err.message : String(err),
-            });
-        }
-    });
+const defaultWasmUrl = new URL('./mp3.wasm', import.meta.url).href;
+const modules = new Map<string, Promise<WebAssembly.Module>>();
+const moduleFor = (url = defaultWasmUrl) => {
+    const cached = modules.get(url) ?? loadMp3Module(url);
+    modules.set(url, cached);
+    return cached;
 };
+
+let encoder: Mp3Encoder | null = null;
+let chunks: Uint8Array[] = [];
+let blobStart: number | null = null;
+let delivered = false;
+
+const start = async (config: Mp3WorkerEncodingConfig) => {
+    encoder = await createMp3Encoder(await moduleFor(config.wasmUrl), config);
+    chunks = [];
+    blobStart = null;
+    delivered = false;
+};
+
+const deliver = (parts: Uint8Array[], final: boolean) => {
+    post({
+        type: 'DATA',
+        blob: new Blob(parts as BlobPart[], { type: 'audio/mpeg' }),
+        start: blobStart ?? performance.now(),
+        final,
+    });
+    chunks = [];
+    blobStart = null;
+    delivered = true;
+};
+
+// The info frame replaces LAME's placeholder frame, which is the first thing the encoder emitted.
+// Only possible while nothing has left the worker yet.
+const withInfoFrame = (parts: Uint8Array[], infoFrame: Uint8Array | null) => {
+    const first = parts.findIndex((part) => part.length > 0);
+    if (!infoFrame || delivered || first < 0 || parts[first].length < infoFrame.length) return parts;
+    return [...parts.slice(0, first), infoFrame, parts[first].subarray(infoFrame.length), ...parts.slice(first + 1)];
+};
+
+const handle = async (message: RecorderMessage) => {
+    switch (message.type) {
+        case 'START_RECORDING':
+            await start(message.config);
+            post({ type: 'WORKER_RECORDING' });
+            break;
+        case 'DATA_AVAILABLE':
+            if (!encoder) return;
+            blobStart ??= performance.now();
+            chunks.push(encoder.encode(message.data));
+            break;
+        case 'REQUEST_DATA':
+            deliver(chunks, false);
+            break;
+        case 'STOP_RECORDING': {
+            if (!encoder) {
+                deliver(chunks, true);
+                return;
+            }
+            const { tail, infoFrame } = encoder.finish();
+            encoder = null;
+            deliver(withInfoFrame([...chunks, tail], infoFrame), true);
+            break;
+        }
+    }
+};
+
+// Messages are handled strictly in order so that e.g. STOP_RECORDING always sees the encoder START created.
+// On failure the recorder gets the error, then whatever was encoded so far as the final blob.
+let queue = Promise.resolve();
+self.addEventListener('message', (event: MessageEvent<RecorderMessage>) => {
+    queue = queue.then(async () => {
+        try {
+            await handle(event.data);
+        } catch (error) {
+            post({ type: 'ERROR', error: error instanceof Error ? error.message : String(error) });
+            encoder = null;
+            deliver(chunks, true);
+        }
+    });
+});

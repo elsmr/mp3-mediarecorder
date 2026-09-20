@@ -6,6 +6,7 @@
         "audio",
         "encode",
         "encoding",
+        "lame",
         "libmp3lame",
         "mediarecorder",
         "mediastream",
@@ -13,7 +14,6 @@
         "polyfill",
         "ponyfill",
         "record",
-        "vmsg",
         "webassembly"
     ],
     "homepage": "https://github.com/elsmr/mp3-mediarecorder#readme",
@@ -40,11 +40,11 @@
             "types": "./dist/worker.d.ts",
             "default": "./dist/worker.js"
         },
-        "./vmsg.wasm": "./dist/vmsg.wasm",
+        "./mp3.wasm": "./dist/mp3.wasm",
         "./package.json": "./package.json"
     },
     "scripts": {
-        "build": "rm -rf dist && bun build src/index.ts src/worker.ts --root src --outdir dist --target browser && tsc -p tsconfig.build.json && cp node_modules/vmsg/vmsg.wasm dist/",
+        "build": "rm -rf dist && bun build src/index.ts src/worker.ts --root src --outdir dist --target browser && tsc -p tsconfig.build.json && cp src/mp3.wasm dist/",
         "test": "bun test src",
         "tsc": "tsc",
         "lint": "oxlint",
@@ -55,9 +55,6 @@
         "vercel-build": "vite build examples/basic --config vite.config.ts --outDir ../../public --emptyOutDir",
         "release": "bun run build && changeset publish",
         "test:e2e": "bun test e2e"
-    },
-    "dependencies": {
-        "vmsg": "0.4.0"
     },
     "devDependencies": {
         "@changesets/cli": "3.0.3",
@@ -73,11 +70,16 @@
     "size-limit": [
         {
             "path": "dist/index.js",
-            "limit": "2 kB"
+            "limit": "3.5 kB"
         },
         {
             "path": "dist/worker.js",
-            "limit": "1.5 kB"
+            "limit": "2.5 kB"
+        },
+        {
+            "path": "dist/mp3.wasm",
+            "limit": "85 kB",
+            "brotli": false
         }
     ],
     "packageManager": "bun@1.4.2"

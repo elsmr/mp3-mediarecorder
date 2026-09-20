@@ -1,5 +1,3 @@
-![mp3-mediarecorder header](https://user-images.githubusercontent.com/8850410/72912434-eb674580-3d3b-11ea-8ffc-aa754b8af9d8.png)
-
 # 🎙 mp3-mediarecorder
 
 [![CI](https://github.com/elsmr/mp3-mediarecorder/actions/workflows/ci.yml/badge.svg)](https://github.com/elsmr/mp3-mediarecorder/actions/workflows/ci.yml) [![NPM Version](https://badge.fury.io/js/mp3-mediarecorder.svg?style=flat)](https://npmjs.org/package/mp3-mediarecorder) [![Live demo](https://img.shields.io/badge/live%20demo-available-blue.svg)](https://mp3-mediarecorder.elsmr.dev)

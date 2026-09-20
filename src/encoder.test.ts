@@ -89,6 +89,34 @@ describe('mp3 encoder', () => {
         expect(new TextDecoder().decode(mp3.subarray(0, infoFrame!.length))).toContain('LAME3.100');
     });
 
+    it('reports the placeholder length mid-stream so a partial delivery can drop it', async () => {
+        const encoder = await createMp3Encoder(module, {
+            sampleRate: SAMPLE_RATE,
+            channels: 1,
+            bitrate: 64,
+            infoFrame: true,
+        });
+        expect(encoder.infoFrameLength()).toBe(0);
+        const parts = Array.from({ length: 4 }, (_, i) => encoder.encode([sine(440, i * CHUNK, CHUNK)]));
+        const first = parts.find((part) => part.length > 0)!;
+        const length = encoder.infoFrameLength();
+        expect(length).toBeGreaterThan(0);
+        // The placeholder is a valid frame header followed by zeros: a frame of silence, not a tag.
+        expect(first[0]).toBe(0xff);
+        expect(first.subarray(4, length).every((byte) => byte === 0)).toBe(true);
+        expect(parseFrames(concat([first.subarray(length), ...parts.slice(parts.indexOf(first) + 1)]))).not.toBeNull();
+        expect(encoder.finish().infoFrame!.length).toBe(length);
+        const plain = await createMp3Encoder(module, {
+            sampleRate: SAMPLE_RATE,
+            channels: 1,
+            bitrate: 64,
+            infoFrame: false,
+        });
+        plain.encode([sine(440, 0, CHUNK)]);
+        expect(plain.infoFrameLength()).toBe(0);
+        plain.finish();
+    });
+
     it('omits the info frame when not requested', async () => {
         const { mp3, infoFrame } = await record({ infoFrame: false });
         expect(infoFrame).toBeNull();

@@ -37,19 +37,20 @@ const deliver = (parts: Uint8Array[], final: boolean) => {
     delivered = true;
 };
 
-// The info frame replaces LAME's placeholder frame, which is the first thing the encoder emitted.
-// Only possible while nothing has left the worker yet.
-const withInfoFrame = (parts: Uint8Array[], infoFrame: Uint8Array | null) => {
+// LAME reserves the info frame's bytes at the start of the stream as a silent placeholder frame. The
+// first blob to leave the worker either swaps in the real frame or, if the stream is still going and
+// the frame can never be written, drops the placeholder so the file does not start with silence.
+const replacePlaceholder = (parts: Uint8Array[], length: number, infoFrame: Uint8Array | null) => {
     const first = parts.findIndex((part) => part.length > 0);
-    if (!infoFrame || delivered || first < 0 || parts[first].length < infoFrame.length) return parts;
-    return [...parts.slice(0, first), infoFrame, parts[first].subarray(infoFrame.length), ...parts.slice(first + 1)];
+    if (delivered || length === 0 || first < 0 || parts[first].length < length) return parts;
+    const replacement = infoFrame ? [infoFrame] : [];
+    return [...parts.slice(0, first), ...replacement, parts[first].subarray(length), ...parts.slice(first + 1)];
 };
 
 const handle = async (message: RecorderMessage) => {
     switch (message.type) {
         case 'START_RECORDING':
             await start(message.config);
-            post({ type: 'WORKER_RECORDING' });
             break;
         case 'DATA_AVAILABLE':
             if (!encoder) return;
@@ -57,7 +58,7 @@ const handle = async (message: RecorderMessage) => {
             chunks.push(encoder.encode(message.data));
             break;
         case 'REQUEST_DATA':
-            deliver(chunks, false);
+            deliver(replacePlaceholder(chunks, encoder?.infoFrameLength() ?? 0, null), false);
             break;
         case 'STOP_RECORDING': {
             if (!encoder) {
@@ -66,7 +67,7 @@ const handle = async (message: RecorderMessage) => {
             }
             const { tail, infoFrame } = encoder.finish();
             encoder = null;
-            deliver(withInfoFrame([...chunks, tail], infoFrame), true);
+            deliver(replacePlaceholder([...chunks, tail], infoFrame?.length ?? 0, infoFrame), true);
             break;
         }
     }

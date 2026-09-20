@@ -12,7 +12,7 @@ type FakeWorker = Worker & {
     terminate: ReturnType<typeof mock>;
     url: URL;
 };
-type FakeStream = MediaStream & { tracks: { stop: () => void }[] };
+type FakeStream = MediaStream & { tracks: (EventTarget & { stop: () => void })[] };
 
 const baseConfig = { sampleRate: 44100, channels: 1, bitrate: 64, infoFrame: true, wasmUrl: undefined };
 
@@ -39,7 +39,6 @@ describe('mp3-mediarecorder', () => {
     const startRecording = async (recorder: Mp3MediaRecorder, timeslice?: number) => {
         recorder.start(timeslice);
         await tick();
-        fromWorker(recorder, { type: 'WORKER_RECORDING' });
     };
     const finalData = (recorder: Mp3MediaRecorder, blob = new Blob([]), start = 0) =>
         fromWorker(recorder, { type: 'DATA', blob, start, final: true });
@@ -98,16 +97,34 @@ describe('mp3-mediarecorder', () => {
             expect(worker.postMessage).toHaveBeenCalledWith({ type: 'START_RECORDING', config: baseConfig });
         });
 
-        it('loads the worklet, connects the graph and fires start once the worker confirms', async () => {
+        it('loads the worklet, connects the graph and fires start once capture begins', async () => {
             const recorder = instantiateRecorder();
-            const started = nextEvent(recorder, 'start');
+            const events: string[] = [];
+            recorder.onstart = () => {
+                events.push('start');
+                expect(captureNode(recorder).connect).toHaveBeenCalledWith(audioContext.destination);
+                expect(recorder.mimeType).toBe('audio/mpeg');
+            };
             recorder.start();
+            expect(events).toEqual([]);
             await tick();
             expect(audioContext.audioWorklet.addModule).toHaveBeenCalledWith(expect.stringMatching(/^blob:/));
-            expect(captureNode(recorder).connect).toHaveBeenCalledWith(audioContext.destination);
-            fromWorker(recorder, { type: 'WORKER_RECORDING' });
-            expect((await started).type).toBe('start');
-            expect(recorder.mimeType).toBe('audio/mpeg');
+            expect(events).toEqual(['start']);
+        });
+
+        it('does not fire start when the worker fails before capture begins', async () => {
+            const recorder = instantiateRecorder();
+            const events: string[] = [];
+            recorder.onstart = () => events.push('start');
+            recorder.onerror = () => events.push('error');
+            recorder.ondataavailable = () => events.push('dataavailable');
+            recorder.onstop = () => events.push('stop');
+            recorder.start();
+            fromWorker(recorder, { type: 'ERROR', error: 'no wasm' });
+            await tick();
+            expect(messages()).toEqual(['START_RECORDING']);
+            finalData(recorder);
+            expect(events).toEqual(['error', 'dataavailable', 'stop']);
         });
 
         it('throws InvalidStateError when not inactive', async () => {
@@ -176,7 +193,6 @@ describe('mp3-mediarecorder', () => {
             recorder.start();
             recorder.stop();
             await tick();
-            fromWorker(recorder, { type: 'WORKER_RECORDING' });
             expect(recorder.mimeType).toBe('');
             finalData(recorder);
             expect(events).toEqual(['start', 'dataavailable', 'stop']);
@@ -430,6 +446,14 @@ describe('mp3-mediarecorder', () => {
             await sleep(300);
             expect(recorder.state).toBe('inactive');
             expect(captureNode(recorder).port.postMessage).toHaveBeenCalledWith('flush');
+        });
+
+        it('stops immediately when a track fires ended', async () => {
+            const recorder = instantiateRecorder();
+            await startRecording(recorder);
+            stream.tracks[0].stop();
+            stream.tracks[0].dispatchEvent(new Event('ended'));
+            expect(recorder.state).toBe('inactive');
         });
 
         it('fires InvalidModificationError and drains when the track set changes', async () => {

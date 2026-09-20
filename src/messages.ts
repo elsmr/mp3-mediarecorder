@@ -12,9 +12,7 @@ export type RecorderMessage =
     | { type: 'STOP_RECORDING' };
 
 export type WorkerMessage =
-    | { type: 'WORKER_RECORDING' }
     /** `start`: performance.now() when the blob's first chunk was encoded (or when it was requested, if empty). */
-    | { type: 'DATA'; blob: Blob; start: number; final: boolean }
-    | { type: 'ERROR'; error: string };
+    { type: 'DATA'; blob: Blob; start: number; final: boolean } | { type: 'ERROR'; error: string };
 
 export type WorkletCommand = 'pause' | 'resume' | 'flush';

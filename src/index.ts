@@ -77,6 +77,7 @@ interface Session {
     timer: ReturnType<typeof setInterval> | null;
     paused: boolean;
     stopping: boolean;
+    aborted: boolean;
     timecodeOrigin: number | null;
     cleanupStream: () => void;
 }
@@ -195,6 +196,7 @@ export class Mp3MediaRecorder extends EventTarget {
             timer: null,
             paused: false,
             stopping: false,
+            aborted: false,
             timecodeOrigin: null,
             cleanupStream: () => {},
         };
@@ -216,14 +218,16 @@ export class Mp3MediaRecorder extends EventTarget {
     }
 
     // Spec: all recorded tracks ending stops the recording; changing the track set is an error.
-    // A locally stopped track changes readyState without firing 'ended', so the state is polled.
+    // A locally stopped track changes readyState without firing 'ended', so the state is also polled.
     private watchStream(session: Session, stream: MediaStream): () => void {
         const tracks = stream.getAudioTracks();
-        const poll = setInterval(() => {
+        const checkEnded = () => {
             if (this.session === session && tracks.every((track) => track.readyState === 'ended')) {
                 this.stop();
             }
-        }, TRACK_POLL_MS);
+        };
+        const poll = setInterval(checkEnded, TRACK_POLL_MS);
+        tracks.forEach((track) => track.addEventListener('ended', checkEnded));
         const onTrackSetChanged = () =>
             this.abort(
                 session,
@@ -235,6 +239,7 @@ export class Mp3MediaRecorder extends EventTarget {
         stream.addEventListener('removetrack', onTrackSetChanged);
         return () => {
             clearInterval(poll);
+            tracks.forEach((track) => track.removeEventListener('ended', checkEnded));
             stream.removeEventListener('addtrack', onTrackSetChanged);
             stream.removeEventListener('removetrack', onTrackSetChanged);
         };
@@ -249,9 +254,12 @@ export class Mp3MediaRecorder extends EventTarget {
         if (audioContext.state === 'suspended') {
             await audioContext.resume();
         }
+        if (session.aborted) return;
         if (session.stopping) {
             // stop() arrived while the worklet was loading: nothing was captured, let the worker flush.
+            // Spec: start is still fired, since stop() only cancels once recording has begun.
             this.releaseAudio(session);
+            this.dispatchEvent(new Event('start'));
             session.worker.postMessage({ type: 'STOP_RECORDING' } satisfies RecorderMessage);
             return;
         }
@@ -278,19 +286,16 @@ export class Mp3MediaRecorder extends EventTarget {
         session.sourceNode.connect(session.captureNode);
         // A worklet node is only rendered while it reaches the destination; its output stays silent.
         session.captureNode.connect(audioContext.destination);
+        // Spec: start fires once recording of the tracks has begun, which is now that the worklet is
+        // connected. The worker needs no separate readiness signal; its messages are handled in order.
+        this.mimeType ||= MP3_MIME_TYPE;
         if (session.paused) this.command(session, 'pause');
+        else this.startTimer(session);
+        this.dispatchEvent(new Event('start'));
     }
 
     private onWorkerMessage(session: Session, message: WorkerMessage): void {
         switch (message.type) {
-            case 'WORKER_RECORDING':
-                // Spec: the start event is queued once recording begins, even if stop() already ran.
-                if (this.session === session && !session.stopping) {
-                    this.mimeType ||= MP3_MIME_TYPE;
-                    if (!session.paused) this.startTimer(session);
-                }
-                this.dispatchEvent(new Event('start'));
-                break;
             case 'ERROR':
                 // The worker follows up with a final DATA message carrying what it encoded so far.
                 this.abort(session, 'UnknownError', message.error, 'worker');
@@ -337,6 +342,7 @@ export class Mp3MediaRecorder extends EventTarget {
         if (this.session !== session || session.stopping) return;
         this.inactivate();
         session.stopping = true;
+        session.aborted = true;
         this.stopTimer(session);
         session.cleanupStream();
         this.releaseAudio(session);

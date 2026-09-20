@@ -19,7 +19,7 @@ View the [live demo](https://mp3-mediarecorder.elsmr.dev)
 
 ## Browser Support
 
-Chrome 75+, Firefox 79+, Safari 15+, Edge 79+ (AudioWorklet, module workers, WebAssembly bulk memory).
+Chrome 85+, Firefox 114+, Safari 15+, Edge 85+. The binding constraints are module workers (Firefox 114, Safari 15) and the untranspiled ES2021 output (Chrome 85); the wasm itself only needs bulk memory (Chrome 75, Firefox 79, Safari 15).
 
 ## Installation
 
@@ -125,11 +125,12 @@ A worker you pass in is yours: it is not terminated after the recording and can 
 
 Everything else follows the [MediaStream Recording spec](https://w3c.github.io/mediacapture-record/), including the parts most ponyfills skip (the only step not implemented is the `SecurityError` for isolated streams, which no cross-browser API can detect):
 
-- `state` changes synchronously in `start()`/`stop()`/`pause()`/`resume()`; events fire asynchronously. `stop()` followed immediately by `start()` works — the previous recording still delivers its `dataavailable` and `stop`.
+- `state` changes synchronously in `start()`/`stop()`/`pause()`/`resume()`; events fire asynchronously. `start` fires once audio is actually being captured, so the moment to show a "recording" indicator is `onstart`, not the return of `start()`. `stop()` followed immediately by `start()` works — the previous recording still delivers its `dataavailable` and `stop`.
 - `mimeType` is the constrained type (`""` unless you passed one) until recording actually starts, then `audio/mpeg` (or the type you passed), then back — exactly like Chrome.
 - Wrong-state calls throw `DOMException` `InvalidStateError`; `stop()` on an inactive recorder is a no-op.
 - `start(timeslice)` coerces like WebIDL `unsigned long` (no throwing); slices shorter than 100 ms are rounded up because the worklet batches ~85 ms of audio.
 - When all audio tracks end (`track.stop()`, device unplugged) the recording stops by itself with `dataavailable` and `stop`. Adding or removing a track fires `error` (`InvalidModificationError`), then `dataavailable` with what was recorded, then `stop`.
+- Chunks requested with `requestData()` on a recording started without `timeslice` are clean too: the placeholder LAME reserves for the duration header is dropped from the first chunk instead of being left in as a silent frame.
 - Encoder or setup failures fire `error` (`UnknownError`), then `dataavailable` with everything encoded so far, then `stop`.
 - `error` events are `ErrorEvent`s whose `.error` is a `DOMException` with the spec name; `dataavailable` events are `BlobEvent`s whose `timecode` is 0 for the first blob and the offset of each later blob's first chunk.
 - `audioBitsPerSecond`, `videoBitsPerSecond` (0), `audioBitrateMode` (`"variable"`), `stream` and the six `on*` handlers exist, and `addEventListener` is typed per event.
@@ -146,7 +147,7 @@ The encoder binary, for hosting it yourself and pointing `wasmUrl` at it.
 
 ## Migrating from v4
 
-**Browser support** is now Chrome 75+, Firefox 79+, Safari 15+, Edge 79+.
+**Browser support** is now Chrome 85+, Firefox 114+, Safari 15+, Edge 85+.
 
 **No worker file needed.** Delete your `worker.js` and the `worker` option; `new Mp3MediaRecorder(stream)` is enough. `initMp3MediaEncoder` is gone: if you still want your own worker, point `new Worker(url, { type: 'module' })` at a copy of `mp3-mediarecorder/worker` and pass it as `worker`. The wasm location, previously `vmsgWasmUrl`, is the recorder's `wasmUrl` option.
 
@@ -175,6 +176,17 @@ with
 
 **Spec behaviour** replaces v4's approximations: `state` flips synchronously, `stop()` on an inactive recorder no longer throws, wrong-state calls throw `DOMException`s instead of `Error`s, `mimeType` is `""` until recording starts, `dataavailable` is always a `BlobEvent`, `error` is an `ErrorEvent` carrying a `DOMException`, streams with video tracks are rejected, and ended tracks stop the recording.
 
+## Limitations
+
+- **Start-up gap.** `state` is `"recording"` as soon as `start()` returns, but audio is only captured once the AudioWorklet module has loaded and the graph is connected — typically tens of milliseconds. Listen for `start` if the exact moment matters. Native recorders have the same gap, just shorter.
+- **No duration header for chunked output.** With `timeslice` or `requestData()` the Xing/LAME frame cannot be written, because it belongs at byte 0 and the first bytes have already left. Players estimate the length from the bitrate and gapless trimming is unavailable. Same trade-off as native `MediaRecorder` when streaming.
+- **Encoder delay.** Every MP3 starts with roughly 25 ms of encoder delay, inherent to the format. The info frame declares it, so gapless-aware players trim it from unchunked recordings.
+- **ABR only.** `audioBitsPerSecond` is the single knob; there are no CBR or VBR quality presets.
+- **Mono unless asked.** `channelCount` is not auto-detected (see [Stereo and bitrate](#stereo-and-bitrate)).
+- **Track end is polled.** A locally stopped track (`track.stop()`) fires no event, so `readyState` is checked every 250 ms; a track ended by its source (`ended` event) stops the recording immediately.
+- **Memory.** Without `timeslice` the whole recording is held in worker memory until `stop()` — about 29 MB per hour at 64 kbps.
+- **Spec gaps.** The `SecurityError` for isolated streams is not implemented (no API can detect them), and `isTypeSupported('audio/mpeg;codecs=mp3')` returns `true` where a literal reading of the spec says `false` (see [API](#api)).
+
 ## Why
 
 Browser support for MediaRecorder is [lacking](https://caniuse.com/#feat=mediarecorder).
@@ -193,10 +205,10 @@ bun run build
 
 ### Rebuilding the encoder
 
-`src/mp3.wasm` is committed. It is LAME 3.100 compiled with [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and wrapped by [`native/encoder.c`](native/encoder.c). The decoder, ID3 writer, ReplayGain, the CBR/VBR quantizers, VBR presets, CRC, stdio and libm are left out — via linker `--wrap` where possible and the small [`native/lame.patch`](native/lame.patch) for static functions — and math comes from JS `Math`, memory from a bump arena. That is what gets it to 80 kB:
+`src/mp3.wasm` is committed. It is LAME 3.100 compiled with [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and wrapped by [`native/encoder.c`](native/encoder.c). The decoder, ID3 writer, ReplayGain, the CBR/VBR quantizers, VBR presets, CRC, stdio and libm are left out — via linker `--wrap` where possible and the small [`native/lame.patch`](native/lame.patch) for static functions — and math comes from JS `Math`, memory from a bump arena. That is what gets it to 78 kB:
 
 ```shell
-native/build.sh   # downloads wasi-sdk and the LAME tarball into native/.cache on first run
+native/build.sh   # downloads wasi-sdk and the LAME tarball into native/.cache on first run; needs wasm-opt (binaryen) on PATH
 ```
 
 Only needed when changing `native/` or bumping LAME. The build re-extracts the pinned tarball every time and fails if `lame.patch` no longer applies.

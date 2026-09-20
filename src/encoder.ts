@@ -14,6 +14,8 @@ export interface Mp3EncoderConfig {
 export interface Mp3Encoder {
     /** One Float32Array per channel, equal lengths, samples in [-1, 1]. Returns encoded bytes (possibly empty). */
     encode(pcm: readonly Float32Array[]): Uint8Array;
+    /** Bytes LAME reserved at the start of the stream for the info frame; 0 until the first frame is out. */
+    infoFrameLength(): number;
     /** Flushes remaining frames and releases the encoder. `infoFrame` replaces the first bytes of the stream. */
     finish(): { tail: Uint8Array; infoFrame: Uint8Array | null };
 }
@@ -110,6 +112,9 @@ export const createMp3Encoder = async (module: WebAssembly.Module, config: Mp3En
                 new Float32Array(memory.buffer, ptr, samples).set(channel);
             });
             return output(wasm.mp3_encode(handle, samples));
+        },
+        infoFrameLength() {
+            return config.infoFrame && !finished ? output(wasm.mp3_info_frame(handle)).length : 0;
         },
         finish() {
             if (finished) {

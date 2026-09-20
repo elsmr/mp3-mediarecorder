@@ -15,11 +15,11 @@ View the [live demo](https://mp3-mediarecorder.elsmr.dev)
 - Mono or joint stereo, ABR encoding at any bitrate from 8 to 320 kbps
 - Audio capture in an AudioWorklet, encoding in a Web Worker — nothing heavy on the main thread
 - Consistent MP3 output in all supported browsers, with an exact duration header
-- Typed events, ESM only, ~3 kB main library, ~80 kB wasm (36 kB brotli) loaded lazily in the worker
+- Typed events, ESM only, ~3 kB main library, 78 kB wasm (34 kB brotli) loaded lazily in the worker
 
 ## Browser Support
 
-Chrome 85+, Firefox 114+, Safari 15+, Edge 85+. The binding constraints are module workers (Firefox 114, Safari 15) and the untranspiled ES2021 output (Chrome 85); the wasm itself only needs bulk memory (Chrome 75, Firefox 79, Safari 15).
+Chrome 85+, Firefox 114+, Safari 15+, Edge 85+. The binding constraints are module workers (Firefox 114, Safari 15) and the untranspiled ES2021 output (Chrome 85); the wasm itself only needs non-trapping float-to-int conversions (Chrome 75, Firefox 64, Safari 15).
 
 ## Installation
 
@@ -43,9 +43,9 @@ recorder.start();
 recorder.stop();
 ```
 
-That's it. The library spawns a module worker next to itself with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`, and the worker fetches `mp3.wasm` the same way. Vite 8+, webpack 5, Parcel 2, Bun and plain `<script type="module">` resolve this without configuration. For a full example, see [examples/basic](examples/basic) or [examples/react](examples/react).
+That's it. The library spawns a module worker next to itself with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`, and the worker fetches `mp3.wasm` the same way. Vite 8+, webpack 5, Parcel 2 and plain `<script type="module">` resolve this without configuration. For a full example, see [examples/basic](examples/basic) or [examples/react](examples/react).
 
-Two bundlers need a hand. If the worker cannot be found, the recorder fires `error` with an `UnknownError` ("Worker error") and a 404 for `worker.js` shows in the network tab.
+Some bundlers need a hand. If the worker cannot be found, the recorder fires `error` with an `UnknownError` ("Worker error") and a 404 for `worker.js` shows in the network tab.
 
 - **Vite 7 and older, `vite dev` only** (`vite build` is fine): dependency pre-bundling moves the library into `.vite/deps` and the worker path along with it. Skip it:
 
@@ -54,7 +54,7 @@ Two bundlers need a hand. If the worker cannot be found, the recorder fires `err
     export default { optimizeDeps: { exclude: ['mp3-mediarecorder'] } };
     ```
 
-- **esbuild** does not follow `new URL(..., import.meta.url)`; copy the two files next to your bundle:
+- **esbuild and Bun** do not follow `new URL(..., import.meta.url)`; copy the two files next to your bundle:
 
     ```shell
     cp node_modules/mp3-mediarecorder/dist/{worker.js,mp3.wasm} dist/
@@ -64,9 +64,11 @@ Rollup without Vite needs a plugin for the same reason as esbuild, or the copy a
 
 ### Without a bundler
 
+The built files have no imports, so any static host that serves the package as-is works. Bundling CDNs such as esm.sh rewrite the module and lose the sibling `worker.js`.
+
 ```html
 <script type="module">
-    import { Mp3MediaRecorder } from 'https://esm.sh/mp3-mediarecorder';
+    import { Mp3MediaRecorder } from 'https://cdn.jsdelivr.net/npm/mp3-mediarecorder@beta/dist/index.js';
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new Mp3MediaRecorder(stream);
@@ -181,7 +183,7 @@ with
 
 ```html
 <script type="module">
-    import { Mp3MediaRecorder } from 'https://esm.sh/mp3-mediarecorder';
+    import { Mp3MediaRecorder } from 'https://cdn.jsdelivr.net/npm/mp3-mediarecorder@beta/dist/index.js';
 </script>
 ```
 
@@ -215,7 +217,7 @@ Even in browsers with support for MediaRecorder, the available audio formats dif
 ```shell
 bun install
 bun run dev    # basic example at http://localhost:5173
-bun test               # unit, including the wasm encoder
+bun run test           # unit, including the wasm encoder
 bun run test:e2e       # records a tone through the demo in headless Chromium
 bun run build
 ```

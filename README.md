@@ -68,7 +68,7 @@ The built files have no imports, so any static host that serves the package as-i
 
 ```html
 <script type="module">
-    import { Mp3MediaRecorder } from 'https://cdn.jsdelivr.net/npm/mp3-mediarecorder@5/dist/index.js';
+    import { Mp3MediaRecorder } from 'https://cdn.jsdelivr.net/npm/mp3-mediarecorder@beta/dist/index.js';
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const recorder = new Mp3MediaRecorder(stream);
@@ -183,7 +183,7 @@ with
 
 ```html
 <script type="module">
-    import { Mp3MediaRecorder } from 'https://cdn.jsdelivr.net/npm/mp3-mediarecorder@5/dist/index.js';
+    import { Mp3MediaRecorder } from 'https://cdn.jsdelivr.net/npm/mp3-mediarecorder@beta/dist/index.js';
 </script>
 ```
 

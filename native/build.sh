@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds src/mp3.wasm from LAME 3.100 + lame.patch + encoder.c using wasi-sdk. Toolchain and sources
-# are downloaded into native/.cache on first run. Usage: native/build.sh
+# are downloaded into native/.cache on first run. Needs wasm-opt (binaryen) on PATH. Usage: native/build.sh
 #
 # To change lame.patch: copy the extracted .cache/lame-3.100 aside, edit, then
 #   diff -ruN lame-3.100.orig/libmp3lame lame-3.100/libmp3lame | sed 's#lame-3.100.orig/#a/#; s#lame-3.100/#b/#' > lame.patch
@@ -48,13 +48,17 @@ done
 
 "$SDK/bin/clang" \
     -DHAVE_CONFIG_H -DNDEBUG -Oz -flto -fno-common -w \
-    -mexec-model=reactor \
+    -mexec-model=reactor --no-wasm-opt \
     -I. -I"$LAME/include" -I"$LAME/libmp3lame" \
-    -Wl,--strip-all \
+    -Wl,--strip-all,--keep-section=target_features \
     -Wl,--wrap=lame_report_def,--wrap=id3tag_write_v1,--wrap=id3tag_write_v2,--wrap=exit \
     -Wl,--wrap=VBR_encode_frame,--wrap=VBR_old_iteration_loop,--wrap=VBR_new_iteration_loop \
     -Wl,--wrap=CBR_iteration_loop,--wrap=InitGainAnalysis,--wrap=AnalyzeSamples,--wrap=GetTitleGain \
     -Wl,--wrap=set_frame_pinfo \
     -o "$OUT" "${FILES[@]}"
+
+# clang runs wasm-opt itself only when it happens to be on PATH; call it explicitly so the output
+# does not depend on the host.
+wasm-opt -Oz --strip-producers --strip-target-features "$OUT" -o "$OUT"
 
 ls -l "$OUT"

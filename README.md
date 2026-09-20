@@ -43,7 +43,24 @@ recorder.start();
 recorder.stop();
 ```
 
-That's it. The library spawns a module worker next to itself with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`, and the worker fetches `mp3.wasm` the same way. Vite, webpack 5, Rollup, Parcel, esbuild and plain `<script type="module">` all resolve this without configuration. For a full example, see [examples/basic](examples/basic) or [examples/react](examples/react).
+That's it. The library spawns a module worker next to itself with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`, and the worker fetches `mp3.wasm` the same way. Vite 8+, webpack 5, Parcel 2, Bun and plain `<script type="module">` resolve this without configuration. For a full example, see [examples/basic](examples/basic) or [examples/react](examples/react).
+
+Two bundlers need a hand. If the worker cannot be found, the recorder fires `error` with an `UnknownError` ("Worker error") and a 404 for `worker.js` shows in the network tab.
+
+- **Vite 7 and older, `vite dev` only** (`vite build` is fine): dependency pre-bundling moves the library into `.vite/deps` and the worker path along with it. Skip it:
+
+    ```js
+    // vite.config.js
+    export default { optimizeDeps: { exclude: ['mp3-mediarecorder'] } };
+    ```
+
+- **esbuild** does not follow `new URL(..., import.meta.url)`; copy the two files next to your bundle:
+
+    ```shell
+    cp node_modules/mp3-mediarecorder/dist/{worker.js,mp3.wasm} dist/
+    ```
+
+Rollup without Vite needs a plugin for the same reason as esbuild, or the copy above. Anything else: pass your own `worker` and `wasmUrl` ([below](#own-worker-or-wasm-location)).
 
 ### Without a bundler
 

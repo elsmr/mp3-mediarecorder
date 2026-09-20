@@ -53,18 +53,10 @@ const Button = ({ enabled, className, onClick, children }) => (
 
 function App() {
     const recorderRef = useRef(null);
-    const workerRef = useRef(null);
     const [recordings, setRecordings] = useState([]);
     const [state, setState] = useState('inactive');
     const [error, setError] = useState(null);
     const [elapsed, resetElapsed] = useStopwatch(state === 'recording');
-
-    useEffect(() => {
-        const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
-        worker.onerror = (event) => setError(`Worker failed to load: ${event.message ?? 'unknown error'}`);
-        workerRef.current = worker;
-        return () => worker.terminate();
-    }, []);
 
     const onRecord = async () => {
         setError(null);
@@ -76,7 +68,7 @@ function App() {
             return;
         }
 
-        const recorder = new Mp3MediaRecorder(stream, { worker: workerRef.current });
+        const recorder = new Mp3MediaRecorder(stream);
         recorderRef.current = recorder;
         resetElapsed();
         recorder.onstart = () => setState('recording');

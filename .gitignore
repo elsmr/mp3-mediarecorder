@@ -3,3 +3,4 @@ dist
 public
 *.log
 .DS_Store
+native/.cache

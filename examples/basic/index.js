@@ -86,9 +86,6 @@ const unsupported = unsupportedReason();
 if (unsupported) {
     showError(unsupported);
 } else {
-    const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
-    worker.onerror = (event) => showError(`Worker failed to load: ${event.message ?? 'unknown error'}`);
-
     let recorder = null;
 
     buttons.record.addEventListener('click', async () => {
@@ -103,7 +100,7 @@ if (unsupported) {
             return;
         }
 
-        recorder = new Mp3MediaRecorder(stream, { worker });
+        recorder = new Mp3MediaRecorder(stream);
         timer.elapsed = 0;
         recorder.onstart = () => setState('recording');
         recorder.onpause = () => setState('paused');

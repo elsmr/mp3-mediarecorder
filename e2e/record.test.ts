@@ -50,11 +50,17 @@ const analyse = async (blob: Blob) => {
     const channels = Array.from({ length: decoded.numberOfChannels }, (_, channel) => {
         const window = decoded.getChannelData(channel).subarray(start, start + decoded.sampleRate);
         const rms = Math.sqrt(window.reduce((sum, sample) => sum + sample * sample, 0) / window.length);
-        const zeroCrossings = window.reduce(
-            (count, sample, i) => count + (i > 0 && sample >= 0 !== window[i - 1] >= 0 ? 1 : 0),
-            0,
-        );
-        return { rms, hz: zeroCrossings / 2 };
+        // Hysteresis: a starved capture on a loaded runner leaves ~10 ms near-silent gaps whose noise
+        // would otherwise count as hundreds of crossings.
+        const threshold = rms / 4;
+        const crossings = window.reduce(
+            ({ count, sign }, sample) => {
+                const next = sample > threshold ? 1 : sample < -threshold ? -1 : sign;
+                return { count: count + (sign !== 0 && next !== sign ? 1 : 0), sign: next };
+            },
+            { count: 0, sign: 0 },
+        ).count;
+        return { rms, hz: crossings / 2 };
     });
     return { type: blob.type, size: blob.size, header, duration: decoded.duration, channels };
 };
